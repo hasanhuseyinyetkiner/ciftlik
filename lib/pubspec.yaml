@@ -1,0 +1,5 @@
+dependencies:
+  flutter:
+    sdk: flutter
+  get:
+  table_calendar: ^3.0.0 
