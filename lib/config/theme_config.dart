@@ -1,52 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Application theme configuration with organic, natural color palette
+/// Application theme configuration with Neo-Brutalist style using green and black tones
 class ThemeConfig {
-  // Natural, earthy color palette for light theme
-  static const Color primaryColorLight = Color(0xFF3E6C40); // Forest Green
-  static const Color secondaryColorLight = Color(0xFF9C6D3E); // Warm Brown
-  static const Color accentColorLight = Color(0xFFBBA065); // Wheat/Hay
-  static const Color tertiaryColorLight = Color(0xFF5E8B7E); // Sage Green
-  static const Color errorColorLight = Color(0xFFB84A3D); // Earthy Red
-  static const Color successColorLight = Color(0xFF5B8C5A); // Leaf Green
-  static const Color warningColorLight = Color(0xFFD89D45); // Amber
-  static const Color infoColorLight = Color(0xFF5D8CAE); // Blue Sky
+  // Neo-Brutalist, green and black color palette for light theme
+  static const Color primaryColorLight = Color(0xFF0F9D58); // Vibrant Green
+  static const Color secondaryColorLight = Color(0xFF1E1E1E); // Rich Black
+  static const Color accentColorLight = Color(0xFF4CAF50); // Lighter Green
+  static const Color tertiaryColorLight = Color(0xFF2E7D32); // Forest Green
+  static const Color errorColorLight = Color(0xFFD32F2F); // Bright Red
+  static const Color successColorLight = Color(0xFF388E3C); // Medium Green
+  static const Color warningColorLight = Color(0xFFFF9800); // Warm Orange
+  static const Color infoColorLight = Color(0xFF0288D1); // Info Blue
 
-  // Natural, earthy color palette for dark theme - softer versions
-  static const Color primaryColorDark =
-      Color(0xFF4A7D5A); // Softer Forest Green
-  static const Color secondaryColorDark = Color(0xFFAD825E); // Softer Brown
-  static const Color accentColorDark = Color(0xFFCCB87A); // Softer Wheat
-  static const Color tertiaryColorDark = Color(0xFF6FA093); // Softer Sage
-  static const Color errorColorDark = Color(0xFFC56B5E); // Softer Red
-  static const Color successColorDark = Color(0xFF6B9D6A); // Softer Leaf Green
-  static const Color warningColorDark = Color(0xFFE5B475); // Softer Amber
-  static const Color infoColorDark = Color(0xFF7EAACA); // Softer Sky
+  // Neo-Brutalist palette for dark theme - bolder versions
+  static const Color primaryColorDark = Color(0xFF00E676); // Neon Green
+  static const Color secondaryColorDark = Color(0xFF121212); // Deep Black
+  static const Color accentColorDark = Color(0xFF69F0AE); // Bright Green
+  static const Color tertiaryColorDark = Color(0xFF00C853); // Strong Green
+  static const Color errorColorDark = Color(0xFFFF5252); // Bright Error Red
+  static const Color successColorDark =
+      Color(0xFF00E676); // Bright Success Green
+  static const Color warningColorDark = Color(0xFFFFAB00); // Bright Warning
+  static const Color infoColorDark = Color(0xFF40C4FF); // Bright Info
 
-  // Background colors - natural paper and dark soil tones
-  static const Color backgroundLight = Color(0xFFF7F4EF); // Cream Paper
-  static const Color backgroundDark = Color(0xFF232620); // Dark Soil
+  // Background colors - brutalist contrast
+  static const Color backgroundLight = Color(0xFFF5F5F5); // Off-White
+  static const Color backgroundDark = Color(0xFF121212); // Deep Black
 
-  // Card colors - slightly elevated from background
-  static const Color cardLight = Color(0xFFFCFAF7); // White Paper
-  static const Color cardDark = Color(0xFF2B2F28); // Rich Soil
+  // Card colors - high contrast for brutalist style
+  static const Color cardLight = Color(0xFFFFFFFF); // Pure White
+  static const Color cardDark = Color(0xFF1E1E1E); // Rich Black
 
-  // Text colors - organic and natural
-  static const Color textPrimaryLight = Color(0xFF33352F); // Charcoal
-  static const Color textSecondaryLight = Color(0xFF6A6D66); // Slate Gray
-  static const Color textTertiaryLight = Color(0xFF9EA096); // Moss Gray
-  static const Color textPrimaryDark = Color(0xFFE6E7E3); // Light Stone
-  static const Color textSecondaryDark = Color(0xFFB7B9B3); // Medium Stone
-  static const Color textTertiaryDark = Color(0xFF8A8C85); // Dark Stone
+  // Text colors - bold contrast for brutalist style
+  static const Color textPrimaryLight = Color(0xFF000000); // Pure Black
+  static const Color textSecondaryLight = Color(0xFF333333); // Dark Gray
+  static const Color textTertiaryLight = Color(0xFF666666); // Medium Gray
+  static const Color textPrimaryDark = Color(0xFFFFFFFF); // Pure White
+  static const Color textSecondaryDark = Color(0xFFCCCCCC); // Light Gray
+  static const Color textTertiaryDark = Color(0xFF999999); // Medium Gray
 
-  // Shadow colors for natural depth
-  static const Color shadowLight = Color(0x1A000000); // Soft Black Shadow
-  static const Color shadowDark = Color(0x1A000000); // Soft Black Shadow
+  // Shadow colors for brutalist depth - more pronounced
+  static const Color shadowLight = Color(0x50000000); // Strong Black Shadow
+  static const Color shadowDark = Color(0x50000000); // Strong Black Shadow
 
-  // Border colors
-  static const Color borderLight = Color(0xFFE3DDD3); // Light Sand
-  static const Color borderDark = Color(0xFF3B3F38); // Dark Moss
+  // Border colors - bold for brutalism
+  static const Color borderLight = Color(0xFF000000); // Black Border
+  static const Color borderDark = Color(0xFF00E676); // Neon Green Border
 
   /// Get light theme for the app
   static ThemeData getThemeLight() {
@@ -78,136 +78,161 @@ class ThemeConfig {
       // Material 3 support
       useMaterial3: true,
 
-      // Cards
+      // Cards - Neo-Brutalist style with thick borders and sharp corners
       cardTheme: CardTheme(
         color: cardLight,
-        elevation: 2,
-        margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
+        margin: const EdgeInsets.all(12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: borderLight, width: 3),
+        ),
         shadowColor: shadowLight,
       ),
 
-      // App bar
+      // App bar - Bold and stark
       appBarTheme: AppBarTheme(
         elevation: 0,
-        centerTitle: true,
-        backgroundColor: cardLight,
+        centerTitle: false,
+        backgroundColor: primaryColorLight,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: textPrimaryLight),
-        actionsIconTheme: const IconThemeData(color: textPrimaryLight),
-        titleTextStyle: GoogleFonts.montserrat(
-          color: textPrimaryLight,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+        iconTheme: IconThemeData(color: Colors.white, size: 28),
+        actionsIconTheme: IconThemeData(color: Colors.white, size: 28),
+        titleTextStyle: GoogleFonts.spaceGrotesk(
+          color: Colors.white,
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
         ),
       ),
 
-      // Bottom app bar
+      // Bottom app bar - Bold and consistent
       bottomAppBarTheme: BottomAppBarTheme(
-        color: cardLight,
+        color: secondaryColorLight,
         elevation: 8,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        shape: const CircularNotchedRectangle(),
+        shape: const AutomaticNotchedShape(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
+        ),
         surfaceTintColor: Colors.transparent,
       ),
 
-      // Elevated button
+      // Elevated button - Chunky brutalist style
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          elevation: 2,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 8,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: BorderSide(color: secondaryColorLight, width: 3),
+          ),
           foregroundColor: Colors.white,
           backgroundColor: primaryColorLight,
-          textStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+          textStyle: GoogleFonts.spaceGrotesk(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
           ),
-          shadowColor: primaryColorLight.withOpacity(0.3),
+          shadowColor: shadowLight,
         ),
       ),
 
-      // Text button
+      // Text button - Bold typography
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           foregroundColor: primaryColorLight,
-          textStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+          textStyle: GoogleFonts.spaceGrotesk(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
           ),
         ),
       ),
 
-      // Outlined button
+      // Outlined button - Chunky outline
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side: BorderSide(color: primaryColorLight, width: 1.5),
-          foregroundColor: primaryColorLight,
-          textStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          side: BorderSide(color: secondaryColorLight, width: 3),
+          foregroundColor: secondaryColorLight,
+          textStyle: GoogleFonts.spaceGrotesk(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
           ),
         ),
       ),
 
-      // Input decoration
+      // Input decoration - Brutalist sharp edges and thick borders
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: cardLight,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: borderLight, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: borderLight, width: 3),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: borderLight, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: borderLight, width: 3),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryColorLight, width: 1.5),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: primaryColorLight, width: 3),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: errorColorLight, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: errorColorLight, width: 3),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: errorColorLight, width: 1.5),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: errorColorLight, width: 3),
         ),
-        labelStyle:
-            TextStyle(color: textSecondaryLight, fontWeight: FontWeight.w500),
-        hintStyle:
-            TextStyle(color: textTertiaryLight, fontWeight: FontWeight.normal),
+        labelStyle: TextStyle(
+          color: textSecondaryLight,
+          fontWeight: FontWeight.w600,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
+        hintStyle: TextStyle(
+          color: textTertiaryLight,
+          fontWeight: FontWeight.normal,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
         prefixIconColor: primaryColorLight,
         suffixIconColor: textSecondaryLight,
-        floatingLabelStyle:
-            TextStyle(color: primaryColorLight, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(
+          color: primaryColorLight,
+          fontWeight: FontWeight.w700,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
       ),
 
-      // Chip theme
+      // Chip theme - Brutalist chunky style
       chipTheme: ChipThemeData(
         backgroundColor: backgroundLight,
         disabledColor: Colors.grey[300]!,
-        selectedColor: primaryColorLight.withOpacity(0.2),
-        secondarySelectedColor: primaryColorLight,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        labelStyle:
-            TextStyle(color: textPrimaryLight, fontWeight: FontWeight.w500),
-        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        selectedColor: primaryColorLight,
+        secondarySelectedColor: secondaryColorLight,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        labelStyle: TextStyle(
+          color: textPrimaryLight,
+          fontWeight: FontWeight.w700,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
+        secondaryLabelStyle: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
         brightness: Brightness.light,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: borderLight),
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: borderLight, width: 2),
         ),
       ),
 
@@ -510,12 +535,12 @@ class ThemeConfig {
         error: errorColorDark,
         background: backgroundDark,
         surface: cardDark,
-        onPrimary: Colors.white,
+        onPrimary: Colors.black,
         onSecondary: Colors.white,
-        onTertiary: Colors.white,
+        onTertiary: Colors.black,
         onBackground: textPrimaryDark,
         onSurface: textPrimaryDark,
-        onError: Colors.white,
+        onError: Colors.black,
       ),
 
       // Background
@@ -524,136 +549,161 @@ class ThemeConfig {
       // Material 3 support
       useMaterial3: true,
 
-      // Cards
+      // Cards - Neo-Brutalist style with thick borders and sharp corners
       cardTheme: CardTheme(
         color: cardDark,
-        elevation: 2,
-        margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
+        margin: const EdgeInsets.all(12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: borderDark, width: 3),
+        ),
         shadowColor: shadowDark,
       ),
 
-      // App bar
+      // App bar - Bold and stark
       appBarTheme: AppBarTheme(
         elevation: 0,
-        centerTitle: true,
-        backgroundColor: cardDark,
+        centerTitle: false,
+        backgroundColor: primaryColorDark,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: textPrimaryDark),
-        actionsIconTheme: const IconThemeData(color: textPrimaryDark),
-        titleTextStyle: GoogleFonts.montserrat(
-          color: textPrimaryDark,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+        iconTheme: IconThemeData(color: Colors.black, size: 28),
+        actionsIconTheme: IconThemeData(color: Colors.black, size: 28),
+        titleTextStyle: GoogleFonts.spaceGrotesk(
+          color: Colors.black,
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
         ),
       ),
 
-      // Bottom app bar
+      // Bottom app bar - Bold and consistent
       bottomAppBarTheme: BottomAppBarTheme(
-        color: cardDark,
+        color: secondaryColorDark,
         elevation: 8,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        shape: const CircularNotchedRectangle(),
+        shape: const AutomaticNotchedShape(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
+        ),
         surfaceTintColor: Colors.transparent,
       ),
 
-      // Elevated button
+      // Elevated button - Chunky brutalist style
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          elevation: 2,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          foregroundColor: Colors.white,
-          backgroundColor: primaryColorDark,
-          textStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+          elevation: 8,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: BorderSide(color: primaryColorDark, width: 3),
           ),
-          shadowColor: primaryColorDark.withOpacity(0.3),
+          foregroundColor: Colors.black,
+          backgroundColor: primaryColorDark,
+          textStyle: GoogleFonts.spaceGrotesk(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
+          ),
+          shadowColor: shadowDark,
         ),
       ),
 
-      // Text button
+      // Text button - Bold typography
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           foregroundColor: primaryColorDark,
-          textStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+          textStyle: GoogleFonts.spaceGrotesk(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
           ),
         ),
       ),
 
-      // Outlined button
+      // Outlined button - Chunky outline
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side: BorderSide(color: primaryColorDark, width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          side: BorderSide(color: primaryColorDark, width: 3),
           foregroundColor: primaryColorDark,
-          textStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+          textStyle: GoogleFonts.spaceGrotesk(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
           ),
         ),
       ),
 
-      // Input decoration
+      // Input decoration - Brutalist sharp edges and thick borders
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: cardDark,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: borderDark, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: borderDark, width: 3),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: borderDark, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: borderDark, width: 3),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryColorDark, width: 1.5),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: primaryColorDark, width: 3),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: errorColorDark, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: errorColorDark, width: 3),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: errorColorDark, width: 1.5),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: errorColorDark, width: 3),
         ),
-        labelStyle:
-            TextStyle(color: textSecondaryDark, fontWeight: FontWeight.w500),
-        hintStyle:
-            TextStyle(color: textTertiaryDark, fontWeight: FontWeight.normal),
+        labelStyle: TextStyle(
+          color: textSecondaryDark,
+          fontWeight: FontWeight.w600,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
+        hintStyle: TextStyle(
+          color: textTertiaryDark,
+          fontWeight: FontWeight.normal,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
         prefixIconColor: primaryColorDark,
         suffixIconColor: textSecondaryDark,
-        floatingLabelStyle:
-            TextStyle(color: primaryColorDark, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(
+          color: primaryColorDark,
+          fontWeight: FontWeight.w700,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
       ),
 
-      // Chip theme
+      // Chip theme - Brutalist chunky style
       chipTheme: ChipThemeData(
         backgroundColor: backgroundDark,
         disabledColor: Colors.grey[700]!,
-        selectedColor: primaryColorDark.withOpacity(0.2),
-        secondarySelectedColor: primaryColorDark,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        labelStyle:
-            TextStyle(color: textPrimaryDark, fontWeight: FontWeight.w500),
-        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        selectedColor: primaryColorDark,
+        secondarySelectedColor: secondaryColorDark,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        labelStyle: TextStyle(
+          color: textPrimaryDark,
+          fontWeight: FontWeight.w700,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
+        secondaryLabelStyle: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        ),
         brightness: Brightness.dark,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: borderDark),
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: borderDark, width: 2),
         ),
       ),
 
@@ -874,7 +924,69 @@ class ThemeConfig {
         ),
       ),
 
-      // Rest of the dark theme components updated with consistent styling...
+      // Floating action button theme
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: secondaryColorDark,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 4,
+        focusElevation: 6,
+        hoverElevation: 8,
+        extendedTextStyle: GoogleFonts.montserrat(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.0,
+        ),
+      ),
+
+      // Dialog theme
+      dialogTheme: DialogTheme(
+        backgroundColor: cardDark,
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.center,
+        titleTextStyle: GoogleFonts.montserrat(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: textPrimaryDark,
+        ),
+        contentTextStyle: GoogleFonts.montserrat(
+          fontSize: 16,
+          color: textPrimaryDark,
+        ),
+      ),
+
+      // Tooltip theme
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: Colors.grey[800],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        textStyle: GoogleFonts.montserrat(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      ),
+
+      // Snack bar theme
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: textPrimaryDark,
+        contentTextStyle: GoogleFonts.montserrat(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        actionTextColor: accentColorDark,
+      ),
     );
   }
 }

@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /*
-* BuildActionCardRow - Aksiyon Kartları Satırı Widget'ı
+* BuildActionCardRow - Neo-Brutalist Aksiyon Kartları Satırı Widget'ı
 * -----------------------------------------------
 * Bu widget, ana sayfada kullanılan hızlı erişim
-* kartlarının satır düzenini oluşturur.
+* kartlarının satır düzenini neo-brutalist stil ile oluşturur.
+*
+* Neo-Brutalist Tasarım Özellikleri:
+* - Kalın siyah çerçeveler
+* - Keskin köşeler
+* - Yüksek kontrast yeşil-siyah renk paleti
+* - Belirgin gölgeler
+* - Minimalist düzen
 *
 * Kart Tipleri:
 * 1. Birincil Aksiyonlar:
@@ -24,14 +31,14 @@ import 'package:google_fonts/google_fonts.dart';
 * 1. Kart Tasarımı:
 *    - İkon
 *    - Başlık
-*    - Alt metin
-*    - Renk şeması
+*    - Kalın çerçeveler
+*    - Offset gölge
 *
 * 2. Düzen:
 *    - Yatay kaydırma
 *    - Eşit aralıklar
 *    - Responsive boyutlar
-*    - Gölge efektleri
+*    - Belirgin gölge efektleri
 *
 * İnteraktif Özellikler:
 * - Tıklama aksiyonları
@@ -69,68 +76,103 @@ class BuildActionCardRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(15.0),
-            highlightColor: Colors.grey.shade200,
-            splashColor: Colors.grey.shade200,
-            onTap: onTap1,
-            child: Card(
-              shadowColor: Colors.cyan,
-              elevation: 4.0,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15.0),
-              ),
-              child: ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0),
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: InkWell(
+              onTap: onTap1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F9D58), // Vibrant Green
+                  borderRadius: BorderRadius.circular(4.0),
+                  border: Border.all(
+                    color: Colors.black,
+                    width: 3.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      offset: const Offset(5, 5),
+                      blurRadius: 0,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
-                tileColor: Colors.white,
-                leading: Image.asset(
-                  iconAsset1,
-                  width: 33,
-                  height: 33,
-                ),
-                title: Text(
-                  title1,
-                  style: GoogleFonts.roboto(
-                    textStyle: const TextStyle(
-                        color: Colors.cyan, fontWeight: FontWeight.bold),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        iconAsset1,
+                        width: 36,
+                        height: 36,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 12.0),
+                      Expanded(
+                        child: Text(
+                          title1,
+                          style: GoogleFonts.spaceGrotesk(
+                            textStyle: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
         ),
-        const SizedBox(width: 8.0),
         Expanded(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(15.0),
-            highlightColor: Colors.grey.shade200,
-            splashColor: Colors.grey.shade200,
-            onTap: onTap2,
-            child: Card(
-              shadowColor: Colors.cyan,
-              elevation: 4.0,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15.0),
-              ),
-              child: ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0),
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: InkWell(
+              onTap: onTap2,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E), // Rich Black
+                  borderRadius: BorderRadius.circular(4.0),
+                  border: Border.all(
+                    color: const Color(0xFF0F9D58), // Vibrant Green
+                    width: 3.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      offset: const Offset(5, 5),
+                      blurRadius: 0,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
-                tileColor: Colors.white,
-                leading: Image.asset(
-                  iconAsset2,
-                  width: 33,
-                  height: 33,
-                ),
-                title: Text(
-                  title2,
-                  style: GoogleFonts.roboto(
-                    textStyle: const TextStyle(
-                        color: Colors.cyan, fontWeight: FontWeight.bold),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        iconAsset2,
+                        width: 36,
+                        height: 36,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 12.0),
+                      Expanded(
+                        child: Text(
+                          title2,
+                          style: GoogleFonts.spaceGrotesk(
+                            textStyle: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

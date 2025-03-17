@@ -8,17 +8,25 @@ import '../SecimSayfalari/SelectBirthTypePage.dart';
 import '../SecimSayfalari/SelectTypePage.dart';
 
 /*
-* ExpandingFab - Genişleyen Floating Action Button Widget'ı
+* ExpandingFab - Neo-Brutalist Genişleyen Floating Action Button Widget'ı
 * --------------------------------------------------
 * Bu widget, ana sayfada kullanılan genişleyebilir
-* floating action button'u ve alt menülerini yönetir.
+* floating action button'u ve alt menülerini neo-brutalist 
+* tasarım prensiplerine göre yönetir.
+*
+* Neo-Brutalist Tasarım Özellikleri:
+* - Kalın siyah çerçeveler
+* - Keskin köşeler
+* - Yüksek kontrast yeşil-siyah renk paleti
+* - Belirgin offset gölgeler
+* - Minimalist yaklaşım
 *
 * Ana Bileşenler:
 * 1. Ana FAB:
-*    - Ana buton
+*    - Kare formlu buton
+*    - Kalın çerçeve
+*    - Offset gölge
 *    - Animasyonlu ikon
-*    - Açılma/kapanma durumu
-*    - Gölge efekti
 *
 * 2. Alt Menü Butonları:
 *    - Hayvan ekleme
@@ -33,18 +41,6 @@ import '../SecimSayfalari/SelectTypePage.dart';
 *    - İkon dönüşü
 *    - Opaklık değişimi
 *
-* 4. İnteraksiyon:
-*    - Tıklama yönetimi
-*    - Geri bildirim
-*    - Otomatik kapanma
-*    - Gesture algılama
-*
-* Özellikler:
-* - Hero animasyonu
-* - Özelleştirilebilir renkler
-* - Responsive konumlandırma
-* - Tema uyumu
-*
 * Kullanım:
 * - Ana sayfada hızlı işlemler için
 * - Sık kullanılan fonksiyonlara erişim
@@ -54,7 +50,7 @@ import '../SecimSayfalari/SelectTypePage.dart';
 
 import 'dart:math' as math;
 
-/// Açılabilir Floating Action Button widget'ı.
+/// Neo-Brutalist stilinde açılabilir Floating Action Button widget'ı.
 /// Bu widget, ana bir FAB ve bağlı alt FAB'lar içerir.
 /// Ana FAB'a tıklandığında alt FAB'lar açılır veya kapanır.
 class ExpandingFab extends StatefulWidget {
@@ -63,6 +59,7 @@ class ExpandingFab extends StatefulWidget {
   final double distance;
   final Color backgroundColor;
   final Color foregroundColor;
+  final Color borderColor;
   final Icon icon;
   final AnimatedIconData animatedIcon;
 
@@ -71,8 +68,9 @@ class ExpandingFab extends StatefulWidget {
     this.mini = false,
     required this.children,
     required this.distance,
-    this.backgroundColor = Colors.blue,
+    this.backgroundColor = const Color(0xFF0F9D58), // Vibrant Green
     this.foregroundColor = Colors.white,
+    this.borderColor = Colors.black,
     this.icon = const Icon(Icons.add),
     this.animatedIcon = AnimatedIcons.menu_close,
   }) : super(key: key);
@@ -114,71 +112,108 @@ class _ExpandingFabState extends State<ExpandingFab>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SizedBox.expand(
+    return SizedBox(
+      width: widget.distance * 2,
+      height: widget.distance * 2,
       child: Stack(
         alignment: Alignment.bottomRight,
-        clipBehavior: Clip.none,
         children: [
-          // Alt butonları oluştur
           ..._buildExpandingActionButtons(),
-
-          // Ana buton
-          _buildTapToOpenFab(theme),
+          _buildTapToOpenFab(),
         ],
       ),
     );
   }
 
-  Widget _buildTapToOpenFab(ThemeData theme) {
-    return FloatingActionButton(
-      backgroundColor: widget.backgroundColor.withOpacity(0.9),
-      foregroundColor: widget.foregroundColor,
-      mini: widget.mini,
-      onPressed: _toggle,
-      elevation: 4,
-      heroTag:
-          'ExpandingFab_${widget.icon.toString()}_${widget.children.length}',
-      child: AnimatedIcon(
-        icon: widget.animatedIcon,
+  List<Widget> _buildExpandingActionButtons() {
+    final int count = widget.children.length;
+    final double step = 90.0 / (count - 1);
+
+    return List.generate(count, (index) {
+      final double angle = (135.0 + step * index) * (math.pi / 180);
+
+      return _ExpandingActionButton(
+        directionInDegrees: angle,
+        maxDistance: widget.distance,
         progress: _controller,
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.backgroundColor,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: widget.borderColor,
+              width: 2.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                offset: const Offset(3, 3),
+                blurRadius: 0,
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: widget.children[index],
+        ),
+      );
+    });
+  }
+
+  Widget _buildTapToOpenFab() {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: widget.borderColor,
+          width: 3.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            offset: const Offset(5, 5),
+            blurRadius: 0,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: IgnorePointer(
+        ignoring: _isOpen,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          transformAlignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(
+            _isOpen ? 0.7 : 1.0,
+            _isOpen ? 0.7 : 1.0,
+            1.0,
+          ),
+          child: AnimatedOpacity(
+            opacity: _isOpen ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 300),
+            child: FloatingActionButton(
+              heroTag: 'NeoBrutalistFAB',
+              mini: widget.mini,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              onPressed: _toggle,
+              child: widget.icon,
+            ),
+          ),
+        ),
       ),
     );
   }
-
-  List<Widget> _buildExpandingActionButtons() {
-    final children = <Widget>[];
-    final count = widget.children.length;
-
-    // Her alt buton için özel bir açı hesapla
-    // Butonu ekran kenarından aşağı doğru yerleştiriyoruz
-    final step = 90.0 / (count - 1);
-
-    for (var i = 0; i < count; i++) {
-      final angle = 180 + i * step;
-      children.add(
-        _ExpandingActionButton(
-          directionDegrees: angle,
-          maxDistance: widget.distance,
-          progress: _controller,
-          child: widget.children[i],
-        ),
-      );
-    }
-
-    return children;
-  }
 }
 
-/// Alt butonlar için animasyonlu container bileşeni
+/// Alt FAB düğmelerinin açılma animasyonunu yöneten yardımcı sınıf.
 class _ExpandingActionButton extends StatelessWidget {
-  final double directionDegrees;
+  final double directionInDegrees;
   final double maxDistance;
   final Animation<double> progress;
   final Widget child;
 
   const _ExpandingActionButton({
-    required this.directionDegrees,
+    required this.directionInDegrees,
     required this.maxDistance,
     required this.progress,
     required this.child,
@@ -189,26 +224,28 @@ class _ExpandingActionButton extends StatelessWidget {
     return AnimatedBuilder(
       animation: progress,
       builder: (context, child) {
-        final offset = Offset.fromDirection(
-          directionDegrees * (math.pi / 180.0),
-          progress.value * maxDistance,
-        );
+        final double dx =
+            math.cos(directionInDegrees) * (maxDistance * progress.value);
+        final double dy =
+            math.sin(directionInDegrees) * (maxDistance * progress.value);
 
-        // Buton konumu
         return Positioned(
-          right: 12.0 + offset.dx,
-          bottom: 12.0 + offset.dy,
+          right: 4.0 + dx,
+          bottom: 4.0 + dy,
           child: Transform.rotate(
             angle: (1.0 - progress.value) * math.pi / 2,
             child: Opacity(
               opacity: progress.value,
-              child: child,
+              child: SizedBox(
+                height: 56,
+                width: 56,
+                child: child,
+              ),
             ),
           ),
         );
       },
-      child: FadeTransition(
-        opacity: progress,
+      child: FittedBox(
         child: child,
       ),
     );
