@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../services/DatabaseService.dart';
 import '../services/api_service.dart';
 import 'dart:async';
@@ -49,8 +50,8 @@ import 'dart:async';
 */
 
 class HomeController extends GetxController {
-  final DatabaseService _databaseService = Get.find();
-  final ApiService _apiService = Get.find();
+  final DatabaseService _databaseService = Get.find<DatabaseService>();
+  final ApiService _apiService = Get.find<ApiService>();
 
   // Observable states
   var isSearching = false.obs;
@@ -84,6 +85,19 @@ class HomeController extends GetxController {
     'settings': true.obs,
   };
 
+  // Ana sayfa verileri
+  final RxInt animalCount = 0.obs;
+  final RxDouble dailyMilk = 0.0.obs;
+  final RxInt alertCount = 0.obs;
+  final RxInt pendingVaccines = 0.obs;
+
+  // Grafik verileri
+  final RxList<FlSpot> weeklyMilkData = <FlSpot>[].obs;
+
+  // Etkinlik verileri
+  final RxList<Map<String, dynamic>> upcomingEvents =
+      <Map<String, dynamic>>[].obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -92,6 +106,7 @@ class HomeController extends GetxController {
     Timer.periodic(const Duration(minutes: 15), (timer) {
       syncData();
     });
+    fetchInitialData();
   }
 
   Future<void> initializeServices() async {
@@ -302,7 +317,7 @@ class HomeController extends GetxController {
     // Implementation of syncGebelikKontrolleri method
   }
 
-  Future<void> syncYemKayitlari(Map<String, dynamic> data) async {
+  Future<void> syncYemKayitlari(Map<String> data) async {
     // Implementation of syncYemKayitlari method
   }
 
@@ -312,5 +327,123 @@ class HomeController extends GetxController {
 
   Future<void> syncBildirimler(Map<String, dynamic> data) async {
     // Implementation of syncBildirimler method
+  }
+
+  /// Ana sayfa verilerini yükler
+  Future<void> fetchInitialData() async {
+    isLoading.value = true;
+    hasError.value = false;
+
+    try {
+      // Toplam hayvan sayısını al
+      await _fetchAnimalCount();
+
+      // Günlük süt miktarını al
+      await _fetchDailyMilk();
+
+      // Aktif uyarıları al
+      await _fetchAlerts();
+
+      // Planlanan aşıları al
+      await _fetchPendingVaccines();
+
+      // Haftalık süt grafiği verilerini al
+      await _fetchWeeklyMilkData();
+
+      // Yaklaşan etkinlikleri al
+      await _fetchUpcomingEvents();
+    } catch (e) {
+      hasError.value = true;
+      errorMessage.value = 'Veriler yüklenirken bir hata oluştu: $e';
+      print('Veri yükleme hatası: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Hayvan sayısını getirir
+  Future<void> _fetchAnimalCount() async {
+    try {
+      // Gerçek uygulamada veritabanından alınacaktır
+      animalCount.value = 124;
+    } catch (e) {
+      print('Hayvan sayısı yükleme hatası: $e');
+    }
+  }
+
+  /// Günlük süt miktarını getirir
+  Future<void> _fetchDailyMilk() async {
+    try {
+      // Gerçek uygulamada veritabanından alınacaktır
+      dailyMilk.value = 256.5;
+    } catch (e) {
+      print('Süt miktarı yükleme hatası: $e');
+    }
+  }
+
+  /// Aktif uyarıları getirir
+  Future<void> _fetchAlerts() async {
+    try {
+      // Gerçek uygulamada veritabanından alınacaktır
+      alertCount.value = 5;
+    } catch (e) {
+      print('Uyarı yükleme hatası: $e');
+    }
+  }
+
+  /// Planlanan aşıları getirir
+  Future<void> _fetchPendingVaccines() async {
+    try {
+      // Gerçek uygulamada veritabanından alınacaktır
+      pendingVaccines.value = 8;
+    } catch (e) {
+      print('Aşı planı yükleme hatası: $e');
+    }
+  }
+
+  /// Haftalık süt verileri grafiğini getirir
+  Future<void> _fetchWeeklyMilkData() async {
+    try {
+      // Gerçek uygulamada veritabanından alınacaktır
+      // Örnek veri oluşturma
+      weeklyMilkData.value = [
+        FlSpot(0, 235), // Pazartesi
+        FlSpot(1, 248), // Salı
+        FlSpot(2, 240), // Çarşamba
+        FlSpot(3, 255), // Perşembe
+        FlSpot(4, 260), // Cuma
+        FlSpot(5, 252), // Cumartesi
+        FlSpot(6, 245), // Pazar
+      ];
+    } catch (e) {
+      print('Süt grafiği yükleme hatası: $e');
+    }
+  }
+
+  /// Yaklaşan etkinlikleri getirir
+  Future<void> _fetchUpcomingEvents() async {
+    try {
+      // Gerçek uygulamada veritabanından alınacaktır
+      upcomingEvents.value = [
+        {
+          'title': 'Sürü Aşılaması',
+          'date': '21 Haziran 2023',
+          'type': 'vaccine'
+        },
+        {
+          'title': 'Gebelik Kontrolü',
+          'date': '23 Haziran 2023',
+          'type': 'checkup'
+        },
+        {
+          'title': 'Tohumlama Programı',
+          'date': '28 Haziran 2023',
+          'type': 'insemination'
+        },
+        {'title': 'Doğum Takibi', 'date': '30 Haziran 2023', 'type': 'birth'},
+      ];
+    } catch (e) {
+      print('Etkinlik yükleme hatası: $e');
+    }
   }
 }

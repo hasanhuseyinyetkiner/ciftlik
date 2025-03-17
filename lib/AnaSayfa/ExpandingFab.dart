@@ -52,151 +52,216 @@ import '../SecimSayfalari/SelectTypePage.dart';
 * - Hızlı veri girişi
 */
 
-class ExpandingFab extends StatelessWidget {
-  const ExpandingFab({super.key});
+import 'dart:math' as math;
+
+/// Açılabilir Floating Action Button widget'ı.
+/// Bu widget, ana bir FAB ve bağlı alt FAB'lar içerir.
+/// Ana FAB'a tıklandığında alt FAB'lar açılır veya kapanır.
+class ExpandingFab extends StatefulWidget {
+  final bool mini;
+  final List<Widget> children;
+  final double distance;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Icon icon;
+  final AnimatedIconData animatedIcon;
+
+  const ExpandingFab({
+    Key? key,
+    this.mini = false,
+    required this.children,
+    required this.distance,
+    this.backgroundColor = Colors.blue,
+    this.foregroundColor = Colors.white,
+    this.icon = const Icon(Icons.add),
+    this.animatedIcon = AnimatedIcons.menu_close,
+  }) : super(key: key);
+
+  @override
+  State<ExpandingFab> createState() => _ExpandingFabState();
+}
+
+class _ExpandingFabState extends State<ExpandingFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _isOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() {
+      _isOpen = !_isOpen;
+      if (_isOpen) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isOpen = false.obs;
-    final animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: Scaffold.of(context),
+    final theme = Theme.of(context);
+    return SizedBox.expand(
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        clipBehavior: Clip.none,
+        children: [
+          // Alt butonları oluştur
+          ..._buildExpandingActionButtons(),
+
+          // Ana buton
+          _buildTapToOpenFab(theme),
+        ],
+      ),
     );
-
-    final fabAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: const Offset(0, 0),
-    ).animate(animationController);
-
-    return Obx(() => Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (isOpen.value)
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
-                child: Container(
-                  color: Colors.black.withOpacity(0.5),
-                ),
-              ),
-            if (isOpen.value) ...[
-              SlideTransition(
-                position: fabAnimation,
-                child: _buildFabWithText(
-                  text: 'Yeni Doğan Ekle',
-                  assetPath:
-                      'icons/lamb_and_calf_with_plus_above_icon_black.png',
-                  onPressed: () {
-                    Get.to(() => const SelectBirthTypePage(),
-                        duration: const Duration(milliseconds: 650));
-                  },
-                  herotag: 'kuzu',
-                ),
-              ),
-              const SizedBox(height: 10),
-              SlideTransition(
-                position: fabAnimation,
-                child: _buildFabWithText(
-                  text: 'Hayvan Ekle',
-                  assetPath:
-                      'icons/sheep_and_cow_with_plus_above_icon_black.png',
-                  onPressed: () {
-                    Get.to(() => const SelectTypePage(),
-                        duration: const Duration(milliseconds: 650));
-                  },
-                  herotag: 'genel',
-                ),
-              ),
-              const SizedBox(height: 10),
-              SlideTransition(
-                position: fabAnimation,
-                child: _buildFabWithText(
-                  text: 'Ölçüm Yap',
-                  assetPath: 'icons/sheep_with_scale_icon_black.png',
-                  onPressed: () {
-                    Get.to(() => OlcumPage(),
-                        duration: const Duration(milliseconds: 650));
-                  },
-                  herotag: 'olcum',
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-            FloatingActionButton(
-              onPressed: () {
-                isOpen.value = !isOpen.value;
-                if (isOpen.value) {
-                  animationController.forward();
-                } else {
-                  animationController.reverse();
-                }
-              },
-              backgroundColor: Colors.white,
-              child: AnimatedBuilder(
-                animation: animationController,
-                builder: (context, child) {
-                  return Transform.rotate(
-                    angle: animationController.value * 3.14,
-                    child: Icon(
-                      isOpen.value ? Icons.close : Icons.add,
-                      color: Colors.black,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ));
   }
 
-  Widget _buildFabWithText({
-    required String text,
-    required String assetPath,
-    required VoidCallback onPressed,
-    required String herotag,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          onTap: onPressed,
-          child: Container(
-            width: 145,
-            padding:
-                const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            decoration: BoxDecoration(
-              color: Colors.cyan,
-              borderRadius: BorderRadius.circular(8.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black, //.withValues(0.5),
-                  blurRadius: 8.0,
-                  offset: const Offset(2, 2),
-                ),
-              ],
+  Widget _buildTapToOpenFab(ThemeData theme) {
+    return FloatingActionButton(
+      backgroundColor: widget.backgroundColor.withOpacity(0.9),
+      foregroundColor: widget.foregroundColor,
+      mini: widget.mini,
+      onPressed: _toggle,
+      elevation: 4,
+      heroTag:
+          'ExpandingFab_${widget.icon.toString()}_${widget.children.length}',
+      child: AnimatedIcon(
+        icon: widget.animatedIcon,
+        progress: _controller,
+      ),
+    );
+  }
+
+  List<Widget> _buildExpandingActionButtons() {
+    final children = <Widget>[];
+    final count = widget.children.length;
+
+    // Her alt buton için özel bir açı hesapla
+    // Butonu ekran kenarından aşağı doğru yerleştiriyoruz
+    final step = 90.0 / (count - 1);
+
+    for (var i = 0; i < count; i++) {
+      final angle = 180 + i * step;
+      children.add(
+        _ExpandingActionButton(
+          directionDegrees: angle,
+          maxDistance: widget.distance,
+          progress: _controller,
+          child: widget.children[i],
+        ),
+      );
+    }
+
+    return children;
+  }
+}
+
+/// Alt butonlar için animasyonlu container bileşeni
+class _ExpandingActionButton extends StatelessWidget {
+  final double directionDegrees;
+  final double maxDistance;
+  final Animation<double> progress;
+  final Widget child;
+
+  const _ExpandingActionButton({
+    required this.directionDegrees,
+    required this.maxDistance,
+    required this.progress,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: progress,
+      builder: (context, child) {
+        final offset = Offset.fromDirection(
+          directionDegrees * (math.pi / 180.0),
+          progress.value * maxDistance,
+        );
+
+        // Buton konumu
+        return Positioned(
+          right: 12.0 + offset.dx,
+          bottom: 12.0 + offset.dy,
+          child: Transform.rotate(
+            angle: (1.0 - progress.value) * math.pi / 2,
+            child: Opacity(
+              opacity: progress.value,
+              child: child,
             ),
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+          ),
+        );
+      },
+      child: FadeTransition(
+        opacity: progress,
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Alt butonlar için action button bileşeni
+class ActionButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final Widget icon;
+  final String tooltip;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  const ActionButton({
+    Key? key,
+    required this.onPressed,
+    required this.icon,
+    this.tooltip = '',
+    this.backgroundColor = Colors.blue,
+    this.foregroundColor = Colors.white,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: backgroundColor.withOpacity(0.9),
+      shape: const CircleBorder(),
+      elevation: 4.0,
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: Tooltip(
+          message: tooltip,
+          child: Container(
+            width: 48.0,
+            height: 48.0,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: backgroundColor ?? theme.colorScheme.primary,
+            ),
+            child: Center(
+              child: IconTheme(
+                data: IconThemeData(
+                    color: foregroundColor ?? theme.colorScheme.onPrimary,
+                    size: 24.0),
+                child: icon,
               ),
             ),
           ),
         ),
-        const SizedBox(width: 8.0),
-        FloatingActionButton(
-          mini: true,
-          heroTag: herotag,
-          onPressed: onPressed,
-          backgroundColor: Colors.white,
-          child: Image.asset(
-            assetPath,
-            width: 35,
-            height: 35,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
