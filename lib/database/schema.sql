@@ -29,6 +29,10 @@ DROP TABLE IF EXISTS tartim_elde CASCADE;
 DROP TABLE IF EXISTS suru_hayvan CASCADE;
 DROP TABLE IF EXISTS suru CASCADE;
 DROP TABLE IF EXISTS tohumlama CASCADE;
+DROP TABLE IF EXISTS hayvan_not CASCADE;
+DROP TABLE IF EXISTS gunluk_aktivite CASCADE;
+DROP TABLE IF EXISTS bildirim CASCADE;
+DROP TABLE IF EXISTS kullanici_ayar CASCADE;
 DROP TABLE IF EXISTS hayvan CASCADE;
 DROP TABLE IF EXISTS kullanici_modul CASCADE;
 DROP TABLE IF EXISTS modul CASCADE;
@@ -674,4 +678,74 @@ CREATE TABLE sayim (
 );
 CREATE TRIGGER trg_update_sayim_updated_at
 BEFORE UPDATE ON sayim
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-------------------------------------------------------
+-- Ek Tablolar
+-------------------------------------------------------
+
+-- hayvan_not Tablosu - Hayvanlar hakkında notları saklar
+CREATE TABLE hayvan_not (
+    not_id SERIAL PRIMARY KEY,
+    hayvan_id INTEGER NOT NULL REFERENCES hayvan(hayvan_id) ON DELETE CASCADE,
+    not_metni TEXT NOT NULL,
+    kullanici_id INTEGER REFERENCES kullanici(kullanici_id),
+    onemli_mi BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT fk_hayvan_not_hayvan FOREIGN KEY (hayvan_id) REFERENCES hayvan(hayvan_id) ON DELETE CASCADE
+);
+CREATE TRIGGER trg_update_hayvan_not_updated_at
+BEFORE UPDATE ON hayvan_not
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- kullanici_ayar Tablosu - Kullanıcı ayarlarını saklar
+CREATE TABLE kullanici_ayar (
+    ayar_id SERIAL PRIMARY KEY,
+    kullanici_id INTEGER NOT NULL REFERENCES kullanici(kullanici_id) ON DELETE CASCADE,
+    ayar_tipi VARCHAR(50) NOT NULL,
+    ayar_deger TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT fk_kullanici_ayar_kullanici FOREIGN KEY (kullanici_id) REFERENCES kullanici(kullanici_id) ON DELETE CASCADE
+);
+CREATE TRIGGER trg_update_kullanici_ayar_updated_at
+BEFORE UPDATE ON kullanici_ayar
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- bildirim Tablosu - Kullanıcı bildirimlerini saklar
+CREATE TABLE bildirim (
+    bildirim_id SERIAL PRIMARY KEY,
+    kullanici_id INTEGER REFERENCES kullanici(kullanici_id) ON DELETE CASCADE,
+    baslik VARCHAR(100) NOT NULL,
+    icerik TEXT NOT NULL,
+    bildirim_tipi VARCHAR(50) NOT NULL, -- 'asi', 'muayene', 'tartim', 'gebelik', 'sistem', vb.
+    ilgili_kayit_id INTEGER, -- İlgili kayda referans (asi_id, muayene_id, vb.)
+    ilgili_tablo VARCHAR(50), -- İlgili tablo adı
+    okundu_mu BOOLEAN DEFAULT FALSE,
+    goruldu_tarihi TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE TRIGGER trg_update_bildirim_updated_at
+BEFORE UPDATE ON bildirim
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- gunluk_aktivite Tablosu - Çiftlik genelindeki günlük aktiviteleri izler
+CREATE TABLE gunluk_aktivite (
+    aktivite_id SERIAL PRIMARY KEY,
+    aktivite_tipi VARCHAR(50) NOT NULL, -- 'besleme', 'temizlik', 'kontrol', 'bakım', vb.
+    aciklama TEXT,
+    baslangic_zamani TIMESTAMPTZ NOT NULL,
+    bitis_zamani TIMESTAMPTZ,
+    durum VARCHAR(20) DEFAULT 'planlandı', -- 'planlandı', 'devam_ediyor', 'tamamlandı', 'iptal_edildi'
+    kullanici_id INTEGER REFERENCES kullanici(kullanici_id),
+    ilgili_hayvan_id INTEGER REFERENCES hayvan(hayvan_id) ON DELETE SET NULL,
+    ilgili_suru_id INTEGER REFERENCES suru(suru_id) ON DELETE SET NULL,
+    konum_bilgisi TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE TRIGGER trg_update_gunluk_aktivite_updated_at
+BEFORE UPDATE ON gunluk_aktivite
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

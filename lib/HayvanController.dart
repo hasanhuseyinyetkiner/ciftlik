@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'services/data_service.dart';
 
 /*
 * HayvanController - Hayvan Yönetim Kontrolcüsü
@@ -41,7 +42,7 @@ import 'package:intl/intl.dart';
 * - exportData(): Veri dışa aktarımı
 *
 * Bağımlılıklar:
-* - AnimalService: Veritabanı işlemleri
+* - DataService: Veritabanı ve API işlemleri
 * - NotificationService: Bildirim yönetimi
 * - FileService: Dosya işlemleri
 */
@@ -136,247 +137,348 @@ class Hayvan {
 }
 
 class HayvanController extends GetxController {
-  var hayvanListesi = <Hayvan>[].obs;
-  var filteredHayvanListesi = <Hayvan>[].obs;
-  var isLoading = true.obs;
-  var searchQuery = ''.obs;
-  var selectedFilter = 'Tümü'.obs;
-  var selectedSortOption = 'Küpe No (A-Z)'.obs;
-  var viewType = 'list'.obs; // 'list' or 'grid'
+  // DataService dependency injection
+  final DataService _dataService = Get.find<DataService>();
 
-  final filterOptions = [
-    'Tümü',
-    'Sağlıklı',
-    'Hasta',
-    'Karantina',
-    'Gebe',
-    'Kuru Dönem',
-    'Laktasyon',
-  ];
+  // Observable variables
+  var isLoading = false.obs;
+  var hayvanListesi = RxList<Hayvan>();
+  var filteredHayvanListesi = RxList<Hayvan>();
+  var selectedHayvan = Rxn<Hayvan>();
 
-  final sortOptions = [
-    'Küpe No (A-Z)',
-    'Küpe No (Z-A)',
-    'Yaş (Büyük-Küçük)',
-    'Yaş (Küçük-Büyük)',
-    'Süt Verimi (Yüksek-Düşük)',
-    'Süt Verimi (Düşük-Yüksek)',
-  ];
+  // Filter variables
+  var searchText = ''.obs;
+  var selectedTur = 'Tümü'.obs;
+  var selectedDurum = 'Tümü'.obs;
+  var selectedIrk = 'Tümü'.obs;
+  var selectedCinsiyet = 'Tümü'.obs;
+  var selectedSaglikDurumu = 'Tümü'.obs;
+  var showActive = true.obs;
 
+  // Sort options
+  var sortBy = 'kupeNo'.obs;
+  var sortAscending = true.obs;
+
+  // Initialization
   @override
   void onInit() {
     super.onInit();
-    fetchHayvanlar();
+    loadHayvanlar();
   }
 
-  Future<void> fetchHayvanlar() async {
-    isLoading(true);
+  // Load animals from database/API
+  Future<void> loadHayvanlar() async {
+    isLoading.value = true;
     try {
-      // Gerçek veritabanı bağlantısı burada yapılacak
-      // Örnek: hayvanListesi.value = await databaseHelper.getHayvanlar();
-      await Future.delayed(const Duration(seconds: 1)); // Geçici bekleme
-      hayvanListesi.value = [
-        Hayvan(
-          id: 1,
-          kupeNo: 'TR-123456789',
-          tur: 'İnek',
-          irk: 'Holstein',
-          cinsiyet: 'Dişi',
-          dogumTarihi: DateTime.now().subtract(const Duration(days: 730)),
-          anneKupeNo: 'TR-987654321',
-          babaKupeNo: 'TR-456789123',
-          chipNo: '1234567890',
-          rfid: 'ABCD1234567890',
-          agirlik: 650.5,
-          durum: 'Sağlıklı',
-          gebelikDurumu: true,
-          sonTohumlanmaTarihi:
-              DateTime.now().subtract(const Duration(days: 60)),
-          tahminiDogumTarihi: DateTime.now().add(const Duration(days: 160)),
-          notlar: 'Sağlıklı ve verimli bir inek.',
-          aktif: true,
-          saglikDurumu: 'Sağlıklı',
-          gunlukSutUretimi: 28.5,
-          canliAgirlik: 650.5,
-          asiTakibi: [],
-          tedaviGecmisi: [],
-          sutVerimi: [],
-          sutBilesenleri: [],
-          agirlikTakibi: [],
-          kizginlikTakibi: [],
-        ),
-        Hayvan(
-          id: 2,
-          kupeNo: 'TR-987654321',
-          tur: 'İnek',
-          irk: 'Simental',
-          cinsiyet: 'Dişi',
-          dogumTarihi: DateTime.now().subtract(const Duration(days: 1095)),
-          chipNo: '0987654321',
-          rfid: 'EFGH0987654321',
-          agirlik: 720.0,
-          durum: 'Hasta',
-          gebelikDurumu: false,
-          sonTohumlanmaTarihi:
-              DateTime.now().subtract(const Duration(days: 60)),
-          tahminiDogumTarihi: DateTime.now().add(const Duration(days: 160)),
-          notlar: 'Hafif topallık var, tedavi devam ediyor.',
-          aktif: true,
-          saglikDurumu: 'Hasta',
-          gunlukSutUretimi: 22.0,
-          canliAgirlik: 720.0,
-          asiTakibi: [],
-          tedaviGecmisi: [],
-          sutVerimi: [],
-          sutBilesenleri: [],
-          agirlikTakibi: [],
-          kizginlikTakibi: [],
-        ),
-        Hayvan(
-          id: 3,
-          kupeNo: 'TR-456789123',
-          tur: 'Boğa',
-          irk: 'Holstein',
-          cinsiyet: 'Erkek',
-          dogumTarihi: DateTime.now().subtract(const Duration(days: 1460)),
-          chipNo: '4567891230',
-          rfid: 'IJKL4567891230',
-          agirlik: 950.0,
-          durum: 'Sağlıklı',
-          gebelikDurumu: false,
-          sonTohumlanmaTarihi: null,
-          tahminiDogumTarihi: null,
-          notlar: 'Damızlık boğa.',
-          aktif: true,
-          saglikDurumu: 'Sağlıklı',
-          gunlukSutUretimi: 0.0,
-          canliAgirlik: 950.0,
-          asiTakibi: [],
-          tedaviGecmisi: [],
-          sutVerimi: [],
-          sutBilesenleri: [],
-          agirlikTakibi: [],
-          kizginlikTakibi: [],
-        ),
-      ];
-      _filterAndSortHayvanlar();
+      final results = await _dataService.fetchData(
+        apiEndpoint: 'Animals',
+        tableName: 'hayvanlar',
+      );
+
+      final List<Hayvan> loadedAnimals =
+          results.map((data) => _mapToHayvan(data)).toList();
+
+      hayvanListesi.assignAll(loadedAnimals);
+      applyFilters(); // Apply any active filters
     } catch (e) {
-      print('Error fetching hayvanlar: $e');
-      Get.snackbar('Hata', 'Hayvan verileri yüklenirken bir hata oluştu',
-          snackPosition: SnackPosition.BOTTOM);
+      print('Error loading animals: $e');
     } finally {
-      isLoading(false);
+      isLoading.value = false;
     }
   }
 
-  void _filterAndSortHayvanlar() {
-    var filtered = List<Hayvan>.from(hayvanListesi);
+  // Convert database data to Hayvan model
+  Hayvan _mapToHayvan(Map<String, dynamic> data) {
+    return Hayvan(
+      id: data['id'] ?? 0,
+      kupeNo: data['kupe_no'] ?? '',
+      tur: data['tur'] ?? '',
+      irk: data['irk'] ?? '',
+      cinsiyet: data['cinsiyet'] ?? '',
+      dogumTarihi: data['dogum_tarihi'] != null
+          ? DateTime.parse(data['dogum_tarihi'])
+          : DateTime.now(),
+      anneKupeNo: data['anne_kupe_no'],
+      babaKupeNo: data['baba_kupe_no'],
+      chipNo: data['chip_no'],
+      rfid: data['rfid'],
+      agirlik: data['agirlik'] != null
+          ? double.parse(data['agirlik'].toString())
+          : 0.0,
+      durum: data['durum'] ?? 'Aktif',
+      gebelikDurumu:
+          data['gebelik_durumu'] == 1 || data['gebelik_durumu'] == true,
+      sonTohumlanmaTarihi: data['son_tohumlanma_tarihi'] != null
+          ? DateTime.parse(data['son_tohumlanma_tarihi'])
+          : null,
+      tahminiDogumTarihi: data['tahmini_dogum_tarihi'] != null
+          ? DateTime.parse(data['tahmini_dogum_tarihi'])
+          : null,
+      notlar: data['notlar'],
+      aktif: data['aktif'] == 1 || data['aktif'] == true,
+      saglikDurumu: data['saglik_durumu'] ?? 'Sağlıklı',
+      gunlukSutUretimi: data['gunluk_sut_uretimi'] != null
+          ? double.parse(data['gunluk_sut_uretimi'].toString())
+          : 0.0,
+      canliAgirlik: data['canli_agirlik'] != null
+          ? double.parse(data['canli_agirlik'].toString())
+          : 0.0,
+      // Additional fields will be loaded separately when needed
+      asiTakibi: [],
+      tedaviGecmisi: [],
+      sutVerimi: [],
+      sutBilesenleri: [],
+      agirlikTakibi: [],
+      kuruyaAyirmaTarihi: data['kuruya_ayirma_tarihi'] != null
+          ? DateTime.parse(data['kuruya_ayirma_tarihi'])
+          : null,
+      kizginlikTakibi: [],
+    );
+  }
 
-    // Apply filters
-    if (selectedFilter.value != 'Tümü') {
-      filtered = filtered.where((hayvan) {
-        switch (selectedFilter.value) {
-          case 'Sağlıklı':
-          case 'Hasta':
-          case 'Karantina':
-            return hayvan.saglikDurumu == selectedFilter.value;
-          case 'Gebe':
-            return hayvan.gebelikDurumu;
-          case 'Kuru Dönem':
-            return hayvan.gunlukSutUretimi == 0;
-          case 'Laktasyon':
-            return hayvan.gunlukSutUretimi > 0;
-          default:
-            return true;
-        }
+  // Apply all active filters
+  void applyFilters() {
+    List<Hayvan> tempList = List.from(hayvanListesi);
+
+    // Filter by active status
+    if (showActive.value) {
+      tempList = tempList.where((hayvan) => hayvan.aktif).toList();
+    }
+
+    // Filter by search text
+    if (searchText.value.isNotEmpty) {
+      tempList = tempList.where((hayvan) {
+        return hayvan.kupeNo
+                .toLowerCase()
+                .contains(searchText.value.toLowerCase()) ||
+            hayvan.chipNo
+                    ?.toLowerCase()
+                    .contains(searchText.value.toLowerCase()) ==
+                true ||
+            hayvan.rfid
+                    ?.toLowerCase()
+                    .contains(searchText.value.toLowerCase()) ==
+                true;
       }).toList();
     }
 
-    // Apply search
-    if (searchQuery.value.isNotEmpty) {
-      final query = searchQuery.value.toLowerCase();
-      filtered = filtered.where((hayvan) {
-        return hayvan.kupeNo.toLowerCase().contains(query) ||
-            hayvan.irk.toLowerCase().contains(query) ||
-            hayvan.saglikDurumu.toLowerCase().contains(query);
-      }).toList();
+    // Filter by selected animal type
+    if (selectedTur.value != 'Tümü') {
+      tempList =
+          tempList.where((hayvan) => hayvan.tur == selectedTur.value).toList();
+    }
+
+    // Filter by selected status
+    if (selectedDurum.value != 'Tümü') {
+      tempList = tempList
+          .where((hayvan) => hayvan.durum == selectedDurum.value)
+          .toList();
+    }
+
+    // Filter by selected breed
+    if (selectedIrk.value != 'Tümü') {
+      tempList =
+          tempList.where((hayvan) => hayvan.irk == selectedIrk.value).toList();
+    }
+
+    // Filter by selected gender
+    if (selectedCinsiyet.value != 'Tümü') {
+      tempList = tempList
+          .where((hayvan) => hayvan.cinsiyet == selectedCinsiyet.value)
+          .toList();
+    }
+
+    // Filter by selected health status
+    if (selectedSaglikDurumu.value != 'Tümü') {
+      tempList = tempList
+          .where((hayvan) => hayvan.saglikDurumu == selectedSaglikDurumu.value)
+          .toList();
     }
 
     // Apply sorting
-    switch (selectedSortOption.value) {
-      case 'Küpe No (A-Z)':
-        filtered.sort((a, b) => a.kupeNo.compareTo(b.kupeNo));
-        break;
-      case 'Küpe No (Z-A)':
-        filtered.sort((a, b) => b.kupeNo.compareTo(a.kupeNo));
-        break;
-      case 'Yaş (Büyük-Küçük)':
-        filtered.sort((a, b) => b.dogumTarihi.compareTo(a.dogumTarihi));
-        break;
-      case 'Yaş (Küçük-Büyük)':
-        filtered.sort((a, b) => a.dogumTarihi.compareTo(b.dogumTarihi));
-        break;
-      case 'Süt Verimi (Yüksek-Düşük)':
-        filtered
-            .sort((a, b) => b.gunlukSutUretimi.compareTo(a.gunlukSutUretimi));
-        break;
-      case 'Süt Verimi (Düşük-Yüksek)':
-        filtered
-            .sort((a, b) => a.gunlukSutUretimi.compareTo(b.gunlukSutUretimi));
-        break;
+    tempList.sort((a, b) {
+      var aValue, bValue;
+
+      switch (sortBy.value) {
+        case 'kupeNo':
+          aValue = a.kupeNo;
+          bValue = b.kupeNo;
+          break;
+        case 'tur':
+          aValue = a.tur;
+          bValue = b.tur;
+          break;
+        case 'dogumTarihi':
+          aValue = a.dogumTarihi;
+          bValue = b.dogumTarihi;
+          break;
+        case 'agirlik':
+          aValue = a.agirlik;
+          bValue = b.agirlik;
+          break;
+        default:
+          aValue = a.kupeNo;
+          bValue = b.kupeNo;
+      }
+
+      int comparison;
+      if (aValue is String && bValue is String) {
+        comparison = aValue.compareTo(bValue);
+      } else if (aValue is DateTime && bValue is DateTime) {
+        comparison = aValue.compareTo(bValue);
+      } else if (aValue is num && bValue is num) {
+        comparison = aValue.compareTo(bValue);
+      } else {
+        comparison = 0;
+      }
+
+      return sortAscending.value ? comparison : -comparison;
+    });
+
+    filteredHayvanListesi.assignAll(tempList);
+  }
+
+  // Add new animal
+  Future<bool> addHayvan(Map<String, dynamic> hayvanData) async {
+    isLoading.value = true;
+    try {
+      final success = await _dataService.saveData(
+        apiEndpoint: 'Animals',
+        tableName: 'hayvanlar',
+        data: hayvanData,
+      );
+
+      if (success) {
+        await loadHayvanlar(); // Reload the list
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error adding animal: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
     }
-
-    filteredHayvanListesi.value = filtered;
   }
 
-  void updateSearchQuery(String query) {
-    searchQuery.value = query;
-    _filterAndSortHayvanlar();
+  // Update existing animal
+  Future<bool> updateHayvan(int id, Map<String, dynamic> hayvanData) async {
+    isLoading.value = true;
+    try {
+      final success = await _dataService.saveData(
+        apiEndpoint: 'Animals/$id',
+        tableName: 'hayvanlar',
+        data: hayvanData,
+        isUpdate: true,
+        primaryKeyField: 'id',
+      );
+
+      if (success) {
+        await loadHayvanlar(); // Reload the list
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error updating animal: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  void updateFilter(String filter) {
-    selectedFilter.value = filter;
-    _filterAndSortHayvanlar();
+  // Delete animal
+  Future<bool> deleteHayvan(int id) async {
+    isLoading.value = true;
+    try {
+      final success = await _dataService.deleteData(
+        apiEndpoint: 'Animals',
+        tableName: 'hayvanlar',
+        primaryKeyField: 'id',
+        primaryKeyValue: id,
+      );
+
+      if (success) {
+        await loadHayvanlar(); // Reload the list
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting animal: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  void updateSortOption(String option) {
-    selectedSortOption.value = option;
-    _filterAndSortHayvanlar();
-  }
-
-  void toggleViewType() {
-    viewType.value = viewType.value == 'list' ? 'grid' : 'list';
-  }
-
-  String formatDate(DateTime date) {
-    return DateFormat('dd.MM.yyyy').format(date);
-  }
-
-  String calculateAge(DateTime birthDate) {
-    final now = DateTime.now();
-    final difference = now.difference(birthDate);
-    final years = (difference.inDays / 365).floor();
-    final months = ((difference.inDays % 365) / 30).floor();
-
-    if (years > 0) {
-      return '$years yıl ${months > 0 ? '$months ay' : ''}';
-    } else if (months > 0) {
-      return '$months ay';
+  // Set sorting options
+  void setSorting(String field, {bool? ascending}) {
+    if (sortBy.value == field) {
+      // Toggle direction if clicking the same field
+      sortAscending.value = ascending ?? !sortAscending.value;
     } else {
-      return '${difference.inDays} gün';
+      // New field, default to ascending
+      sortBy.value = field;
+      sortAscending.value = ascending ?? true;
     }
+    applyFilters(); // Re-apply filters with new sorting
   }
 
-  Color getStatusColor(String status) {
-    switch (status) {
-      case 'Sağlıklı':
-        return Colors.green;
-      case 'Hasta':
-        return Colors.red;
-      case 'Karantina':
-        return Colors.orange;
-      default:
-        return Colors.blue;
+  // Set search text
+  void setSearchText(String text) {
+    searchText.value = text;
+    applyFilters();
+  }
+
+  // Set filter values
+  void setFilter(String filterType, String value) {
+    switch (filterType) {
+      case 'tur':
+        selectedTur.value = value;
+        break;
+      case 'durum':
+        selectedDurum.value = value;
+        break;
+      case 'irk':
+        selectedIrk.value = value;
+        break;
+      case 'cinsiyet':
+        selectedCinsiyet.value = value;
+        break;
+      case 'saglikDurumu':
+        selectedSaglikDurumu.value = value;
+        break;
     }
+    applyFilters();
+  }
+
+  // Toggle active filter
+  void toggleActiveFilter(bool value) {
+    showActive.value = value;
+    applyFilters();
+  }
+
+  // Get unique values for filters
+  List<String> getUniqueValues(String field) {
+    final Set<String> values = {'Tümü'};
+
+    switch (field) {
+      case 'tur':
+        hayvanListesi.forEach((hayvan) => values.add(hayvan.tur));
+        break;
+      case 'durum':
+        hayvanListesi.forEach((hayvan) => values.add(hayvan.durum));
+        break;
+      case 'irk':
+        hayvanListesi.forEach((hayvan) => values.add(hayvan.irk));
+        break;
+      case 'cinsiyet':
+        hayvanListesi.forEach((hayvan) => values.add(hayvan.cinsiyet));
+        break;
+      case 'saglikDurumu':
+        hayvanListesi.forEach((hayvan) => values.add(hayvan.saglikDurumu));
+        break;
+    }
+
+    return values.toList()..sort();
   }
 }

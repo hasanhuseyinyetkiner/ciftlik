@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:path/path.dart';
 // Dışa bağımlı dosyalar (orijinal projede tanımlı):
 // import '../../AnimalService/AnimalService.dart';

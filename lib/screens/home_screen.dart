@@ -448,11 +448,17 @@ class _HomeScreenState extends State<HomeScreen> {
         IconButton(
           icon: Icon(Icons.notifications_outlined,
               color: theme.colorScheme.onSurface),
-          onPressed: () {},
+          onPressed: () {
+            // Navigate to notifications page
+            Get.toNamed('/notifications');
+          },
         ),
         IconButton(
           icon: Icon(Icons.person_outline, color: theme.colorScheme.onSurface),
-          onPressed: () {},
+          onPressed: () {
+            // Navigate to profile page
+            Get.toNamed('/profile');
+          },
         ),
       ],
     );
@@ -1000,6 +1006,15 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _selectedIndex = index;
         });
+        
+        // Navigate to the appropriate screen based on the index
+        if (index == 1) { // Takvim
+          Get.toNamed('/calendar');
+        } else if (index == 2) { // İstatistik
+          Get.toNamed('/statistics');
+        } else if (index == 3) { // Ayarlar
+          Get.toNamed('/settings');
+        }
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -3,24 +3,44 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'DatabaseService.dart';
 import 'AuthService.dart';
+import '../config/api_config.dart';
 
 class SyncService {
   final AuthService authService = AuthService();
   final DatabaseService databaseService = DatabaseService();
-  final String baseUrl = 'http://146.190.54.51/api/Users';
-  final String getUrl = 'http://146.190.54.51/api/Users/{id}/{email}';
-  final String postUrl = "http://146.190.54.51/api/Users";
-  final String getAnimal = "http://146.190.54.51/api/AnimalType";
-  final String postAnimal = "http://146.190.54.51/api/AnimalType";
-  final String getAnimalSubtype = "http://146.190.54.51/api/AnimalSubType";
-  final String postAnimalSubtype = "http://146.190.54.51/api/AnimalSubType";
 
-  // HTTP Basic Authentication credentials
-  final String username = 'MerlabUser';
-  final String password = 'kWz*7jq8[;71';
+  // Use ApiConfig for base URLs
+  final String baseUrl = '${ApiConfig.baseUrl}/Users';
+  final String getUrl = '${ApiConfig.baseUrl}/Users/{id}/{email}';
+  final String postUrl = '${ApiConfig.baseUrl}/Users';
+  final String getAnimal = '${ApiConfig.baseUrl}/AnimalType';
+  final String postAnimal = '${ApiConfig.baseUrl}/AnimalType';
+  final String getAnimalSubtype = '${ApiConfig.baseUrl}/AnimalSubType';
+  final String postAnimalSubtype = '${ApiConfig.baseUrl}/AnimalSubType';
+
+  // Use ApiConfig for authentication
+  final String username = ApiConfig.username;
+  final String password = ApiConfig.password;
+
+  bool _isOfflineMode = false;
+
+  // Getter and setter for offline mode
+  bool get isOfflineMode => _isOfflineMode;
+
+  void setOfflineMode(bool value) {
+    _isOfflineMode = value;
+  }
+
+  // Get authentication headers using ApiConfig
+  Map<String, String> get authHeaders => ApiConfig.getBasicAuthHeaders();
 
   Future<void> syncSpecificUserFromApiToDatabase(
       int userId, String email) async {
+    if (_isOfflineMode) {
+      print('Cannot sync user in offline mode');
+      return;
+    }
+
     try {
       final user = await getUserByIdAndEmail(userId, email);
       await authService.initDb(); // Ensure the database is initialized
@@ -36,25 +56,27 @@ class SyncService {
       };
       await authService.addUser(dbUser); // Add the user to SQLite
     } catch (e) {
-      // print('Failed to sync user from API to SQLite: $e');
+      print('Failed to sync user from API to SQLite: $e');
     }
   }
 
   Future<Map<String, dynamic>> getUserByIdAndEmail(
       int userId, String email) async {
+    if (_isOfflineMode) {
+      throw Exception('Cannot get user in offline mode');
+    }
+
     final response = await http.get(
       Uri.parse(getUrl
           .replaceFirst('{id}', userId.toString())
           .replaceFirst('{email}', email)),
-      headers: {
-        'Authorization':
-            'Basic ${base64Encode(utf8.encode("$username:$password"))}',
-      },
+      headers: authHeaders,
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to load user');
+      throw Exception(
+          'Failed to load user: ${response.statusCode} - ${response.body}');
     }
   }
 

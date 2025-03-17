@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../screens/splash_screen.dart';
 import '../screens/login/login_screen.dart';
 import '../screens/home_screen.dart';
+import '../screens/calendar_screen.dart';
 import '../pages/hayvan_list_page.dart';
 import '../pages/hayvan_detail_page.dart';
 import '../pages/hayvan_form_page.dart';
@@ -34,6 +35,10 @@ import '../RaporModulu/RaporlarSayfasi.dart';
 import '../KonumYonetimi/KonumYonetimSayfasi.dart';
 import '../SayimModulu/SayimSayfasi.dart';
 import '../OtomatikAyirma/OtomatikAyirmaSayfasi.dart';
+import '../screens/notifications_screen.dart';
+import '../screens/profile_screen.dart';
+import '../screens/statistics_screen.dart';
+import '../screens/settings_screen.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -56,10 +61,24 @@ class AppRoutes {
   static const String asilamaForm = '/asilama/form';
   static const String asilamaEdit = '/asilama/:id/edit';
 
+  // New routes
+  static const String calendar = '/calendar';
+  static const String statistics = '/statistics';
+  static const String settings = '/settings';
+  static const String notifications = '/notifications';
+  static const String profile = '/profile';
+
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashScreen()),
     GetPage(name: login, page: () => const LoginScreen()),
     GetPage(name: home, page: () => const HomeScreen()),
+
+    // New route definitions
+    GetPage(name: calendar, page: () => CalendarScreen()),
+    GetPage(name: statistics, page: () => StatisticsScreen()),
+    GetPage(name: settings, page: () => SettingsScreen()),
+    GetPage(name: notifications, page: () => const NotificationsScreen()),
+    GetPage(name: profile, page: () => const ProfileScreen()),
 
     // Core Module Routes
     GetPage(

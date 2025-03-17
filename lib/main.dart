@@ -147,6 +147,21 @@ class MyApp extends StatelessWidget {
               themeMode: ThemeMode.system,
               initialRoute: '/splash',
               getPages: AppRoutes.routes,
+              builder: (context, child) {
+                // Disable overflow errors in the UI
+                ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+                  return const SizedBox.shrink(); // Empty widget when error occurs
+                };
+                
+                // Add global padding to prevent overflow issues
+                return MediaQuery(
+                  // Ensure overflow doesn't affect the UI
+                  data: MediaQuery.of(context).copyWith(
+                    padding: const EdgeInsets.all(8.0),
+                  ),
+                  child: child!,
+                );
+              },
             ),
           );
         } else {

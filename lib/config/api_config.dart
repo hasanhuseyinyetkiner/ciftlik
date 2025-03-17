@@ -28,8 +28,10 @@ class ApiConfig {
 
   // Basic auth başlıkları
   static Map<String, String> getBasicAuthHeaders() {
-    // Implementation of getBasicAuthHeaders method
-    // This method should return the appropriate headers for basic authentication
-    throw UnimplementedError();
+    final credentials = base64Encode(utf8.encode('${username}:${password}'));
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic $credentials',
+    };
   }
 }

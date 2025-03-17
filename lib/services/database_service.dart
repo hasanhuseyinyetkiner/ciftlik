@@ -16,9 +16,16 @@ class DatabaseService {
     while (retryCount < _maxRetries) {
       try {
         _connection = await _dbConfig.connection;
-        _isConnected = true;
-        print('Database connection established successfully');
-        return;
+        if (_connection != null) {
+          _isConnected = true;
+          print('Database connection established successfully');
+          return;
+        } else {
+          // Connection is null, likely in offline mode
+          print('Database connection is null, operating in offline mode');
+          _isConnected = false;
+          return;
+        }
       } catch (e) {
         retryCount++;
         print('Database connection attempt $retryCount failed: $e');
@@ -484,5 +491,314 @@ class DatabaseService {
     } catch (e) {
       print('Error creating weight module tables: $e');
     }
+  }
+
+  // Check connection status
+  Future<bool> checkConnection() async {
+    if (_isConnected && _connection != null) {
+      try {
+        // Test query to verify connection
+        await _connection!.query('SELECT 1');
+        return true;
+      } catch (e) {
+        _isConnected = false;
+        return false;
+      }
+    }
+    return false;
+  }
+
+  // Set offline mode
+  void setOfflineMode(bool value) {
+    _dbConfig.setOfflineMode(value);
+    _isConnected = !value;
+  }
+
+  // HAYVAN NOT İŞLEMLERİ
+  Future<List<Map<String, dynamic>>> getHayvanNotlari(int hayvanId) async {
+    final sql = '''
+      SELECT * FROM hayvan_not 
+      WHERE hayvan_id = @hayvan_id
+      ORDER BY created_at DESC
+    ''';
+
+    return await query(sql, substitutionValues: {'hayvan_id': hayvanId});
+  }
+
+  Future<bool> addHayvanNot(Map<String, dynamic> data) async {
+    final sql = '''
+      INSERT INTO hayvan_not (
+        hayvan_id, not_metni, kullanici_id, onemli_mi
+      ) VALUES (
+        @hayvan_id, @not_metni, @kullanici_id, @onemli_mi
+      )
+    ''';
+
+    return await execute(sql, substitutionValues: {
+      'hayvan_id': data['hayvan_id'],
+      'not_metni': data['not_metni'],
+      'kullanici_id': data['kullanici_id'],
+      'onemli_mi': data['onemli_mi'] ?? false,
+    });
+  }
+
+  Future<bool> updateHayvanNot(int notId, Map<String, dynamic> data) async {
+    final sql = '''
+      UPDATE hayvan_not SET
+        not_metni = @not_metni,
+        onemli_mi = @onemli_mi
+      WHERE not_id = @not_id
+    ''';
+
+    return await execute(sql, substitutionValues: {
+      'not_id': notId,
+      'not_metni': data['not_metni'],
+      'onemli_mi': data['onemli_mi'] ?? false,
+    });
+  }
+
+  Future<bool> deleteHayvanNot(int notId) async {
+    final sql = 'DELETE FROM hayvan_not WHERE not_id = @not_id';
+    return await execute(sql, substitutionValues: {'not_id': notId});
+  }
+
+  // KULLANICI AYARLARI İŞLEMLERİ
+  Future<List<Map<String, dynamic>>> getKullaniciAyarlari(
+      int kullaniciId) async {
+    final sql = '''
+      SELECT * FROM kullanici_ayar 
+      WHERE kullanici_id = @kullanici_id
+    ''';
+
+    return await query(sql, substitutionValues: {'kullanici_id': kullaniciId});
+  }
+
+  Future<Map<String, dynamic>> getKullaniciAyar(
+      int kullaniciId, String ayarTipi) async {
+    final sql = '''
+      SELECT * FROM kullanici_ayar 
+      WHERE kullanici_id = @kullanici_id AND ayar_tipi = @ayar_tipi
+      LIMIT 1
+    ''';
+
+    final results = await query(sql, substitutionValues: {
+      'kullanici_id': kullaniciId,
+      'ayar_tipi': ayarTipi,
+    });
+
+    return results.isNotEmpty ? results.first : {};
+  }
+
+  Future<bool> setKullaniciAyar(Map<String, dynamic> data) async {
+    // Önce ayarın var olup olmadığını kontrol et
+    final checkSql = '''
+      SELECT ayar_id FROM kullanici_ayar 
+      WHERE kullanici_id = @kullanici_id AND ayar_tipi = @ayar_tipi
+      LIMIT 1
+    ''';
+
+    final results = await query(checkSql, substitutionValues: {
+      'kullanici_id': data['kullanici_id'],
+      'ayar_tipi': data['ayar_tipi'],
+    });
+
+    if (results.isNotEmpty) {
+      // Güncelleme
+      final updateSql = '''
+        UPDATE kullanici_ayar SET
+          ayar_deger = @ayar_deger
+        WHERE kullanici_id = @kullanici_id AND ayar_tipi = @ayar_tipi
+      ''';
+
+      return await execute(updateSql, substitutionValues: {
+        'kullanici_id': data['kullanici_id'],
+        'ayar_tipi': data['ayar_tipi'],
+        'ayar_deger': data['ayar_deger'],
+      });
+    } else {
+      // Ekleme
+      final insertSql = '''
+        INSERT INTO kullanici_ayar (
+          kullanici_id, ayar_tipi, ayar_deger
+        ) VALUES (
+          @kullanici_id, @ayar_tipi, @ayar_deger
+        )
+      ''';
+
+      return await execute(insertSql, substitutionValues: {
+        'kullanici_id': data['kullanici_id'],
+        'ayar_tipi': data['ayar_tipi'],
+        'ayar_deger': data['ayar_deger'],
+      });
+    }
+  }
+
+  // BİLDİRİM İŞLEMLERİ
+  Future<List<Map<String, dynamic>>> getBildirimler(
+    int kullaniciId, {
+    bool sadeceOkunmamis = false,
+    DateTime? baslangicTarihi,
+    DateTime? bitisTarihi,
+  }) async {
+    String sql = '''
+      SELECT * FROM bildirim 
+      WHERE kullanici_id = @kullanici_id
+    ''';
+
+    Map<String, dynamic> params = {'kullanici_id': kullaniciId};
+
+    if (sadeceOkunmamis) {
+      sql += ' AND okundu_mu = false';
+    }
+
+    if (baslangicTarihi != null) {
+      sql += ' AND created_at >= @baslangic_tarihi';
+      params['baslangic_tarihi'] = baslangicTarihi.toIso8601String();
+    }
+
+    if (bitisTarihi != null) {
+      sql += ' AND created_at <= @bitis_tarihi';
+      params['bitis_tarihi'] = bitisTarihi.toIso8601String();
+    }
+
+    sql += ' ORDER BY created_at DESC';
+
+    return await query(sql, substitutionValues: params);
+  }
+
+  Future<bool> addBildirim(Map<String, dynamic> data) async {
+    final sql = '''
+      INSERT INTO bildirim (
+        kullanici_id, baslik, icerik, bildirim_tipi, 
+        ilgili_kayit_id, ilgili_tablo, okundu_mu
+      ) VALUES (
+        @kullanici_id, @baslik, @icerik, @bildirim_tipi, 
+        @ilgili_kayit_id, @ilgili_tablo, false
+      )
+    ''';
+
+    return await execute(sql, substitutionValues: {
+      'kullanici_id': data['kullanici_id'],
+      'baslik': data['baslik'],
+      'icerik': data['icerik'],
+      'bildirim_tipi': data['bildirim_tipi'],
+      'ilgili_kayit_id': data['ilgili_kayit_id'],
+      'ilgili_tablo': data['ilgili_tablo'],
+    });
+  }
+
+  Future<bool> bildirimOkundu(int bildirimId) async {
+    final sql = '''
+      UPDATE bildirim SET
+        okundu_mu = true,
+        goruldu_tarihi = NOW()
+      WHERE bildirim_id = @bildirim_id
+    ''';
+
+    return await execute(sql, substitutionValues: {'bildirim_id': bildirimId});
+  }
+
+  Future<bool> tumBildirimleriOkunduYap(int kullaniciId) async {
+    final sql = '''
+      UPDATE bildirim SET
+        okundu_mu = true,
+        goruldu_tarihi = NOW()
+      WHERE kullanici_id = @kullanici_id AND okundu_mu = false
+    ''';
+
+    return await execute(sql,
+        substitutionValues: {'kullanici_id': kullaniciId});
+  }
+
+  // GÜNLÜK AKTİVİTE İŞLEMLERİ
+  Future<List<Map<String, dynamic>>> getGunlukAktiviteler({
+    DateTime? baslangicTarihi,
+    DateTime? bitisTarihi,
+    String? aktiviteTipi,
+    int? kullaniciId,
+    String? durum,
+  }) async {
+    String sql = 'SELECT * FROM gunluk_aktivite WHERE 1=1';
+    Map<String, dynamic> params = {};
+
+    if (baslangicTarihi != null) {
+      sql += ' AND baslangic_zamani >= @baslangic_tarihi';
+      params['baslangic_tarihi'] = baslangicTarihi.toIso8601String();
+    }
+
+    if (bitisTarihi != null) {
+      sql += ' AND baslangic_zamani <= @bitis_tarihi';
+      params['bitis_tarihi'] = bitisTarihi.toIso8601String();
+    }
+
+    if (aktiviteTipi != null) {
+      sql += ' AND aktivite_tipi = @aktivite_tipi';
+      params['aktivite_tipi'] = aktiviteTipi;
+    }
+
+    if (kullaniciId != null) {
+      sql += ' AND kullanici_id = @kullanici_id';
+      params['kullanici_id'] = kullaniciId;
+    }
+
+    if (durum != null) {
+      sql += ' AND durum = @durum';
+      params['durum'] = durum;
+    }
+
+    sql += ' ORDER BY baslangic_zamani DESC';
+
+    return await query(sql, substitutionValues: params);
+  }
+
+  Future<bool> addGunlukAktivite(Map<String, dynamic> data) async {
+    final sql = '''
+      INSERT INTO gunluk_aktivite (
+        aktivite_tipi, aciklama, baslangic_zamani, bitis_zamani,
+        durum, kullanici_id, ilgili_hayvan_id, ilgili_suru_id, konum_bilgisi
+      ) VALUES (
+        @aktivite_tipi, @aciklama, @baslangic_zamani, @bitis_zamani,
+        @durum, @kullanici_id, @ilgili_hayvan_id, @ilgili_suru_id, @konum_bilgisi
+      )
+    ''';
+
+    return await execute(sql, substitutionValues: {
+      'aktivite_tipi': data['aktivite_tipi'],
+      'aciklama': data['aciklama'],
+      'baslangic_zamani': data['baslangic_zamani'],
+      'bitis_zamani': data['bitis_zamani'],
+      'durum': data['durum'] ?? 'planlandı',
+      'kullanici_id': data['kullanici_id'],
+      'ilgili_hayvan_id': data['ilgili_hayvan_id'],
+      'ilgili_suru_id': data['ilgili_suru_id'],
+      'konum_bilgisi': data['konum_bilgisi'],
+    });
+  }
+
+  Future<bool> updateAktiviteDurum(int aktiviteId, String yeniDurum) async {
+    final sql = '''
+      UPDATE gunluk_aktivite SET
+        durum = @durum
+      WHERE aktivite_id = @aktivite_id
+    ''';
+
+    return await execute(sql, substitutionValues: {
+      'aktivite_id': aktiviteId,
+      'durum': yeniDurum,
+    });
+  }
+
+  Future<bool> tamamlaAktivite(int aktiviteId, DateTime bitisTarihi) async {
+    final sql = '''
+      UPDATE gunluk_aktivite SET
+        durum = 'tamamlandı',
+        bitis_zamani = @bitis_zamani
+      WHERE aktivite_id = @aktivite_id
+    ''';
+
+    return await execute(sql, substitutionValues: {
+      'aktivite_id': aktiviteId,
+      'bitis_zamani': bitisTarihi.toIso8601String(),
+    });
   }
 }

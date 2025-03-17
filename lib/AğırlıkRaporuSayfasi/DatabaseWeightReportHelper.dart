@@ -3,7 +3,6 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseWeightReportHelper {
   static Database? _database;
-
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -11,16 +10,19 @@ class DatabaseWeightReportHelper {
   }
 
   _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'merlab.db'); // Veritabanı yolunu belirle
+    String path = join(
+        await getDatabasesPath(), 'merlab.db'); // Veritabanı yolunu belirle
     return await openDatabase(path);
   }
 
   // Son ağırlık değişimini hesaplayan fonksiyon(Şimdilik kullanılmamakta,ileride kullanılabilir.)
-  Future<List<Map<String, dynamic>>> getLastWeightChange(List<String> selectedAnimals) async {
+  Future<List<Map<String, dynamic>>> getLastWeightChange(
+      List<String> selectedAnimals) async {
     Database? db = await database;
 
     try {
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid, 
            AT.animaltype, 
@@ -126,11 +128,13 @@ class DatabaseWeightReportHelper {
   }
 
   // Son ağırlık değişimini büyükten küçüğe sıralı olarak hesaplayan fonksiyon(Şimdilik kullanılmamakta,ileride kullanılabilir.)
-  Future<List<Map<String, dynamic>>> getLastWeightChangeDesc(List<String> selectedAnimals) async {
+  Future<List<Map<String, dynamic>>> getLastWeightChangeDesc(
+      List<String> selectedAnimals) async {
     Database? db = await database;
 
     try {
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid, 
            AT.animaltype, 
@@ -237,12 +241,14 @@ class DatabaseWeightReportHelper {
   }
 
   // Son ağırlık değişimini küçükten büyüğe sıralı olarak hesaplayan fonksiyon(Şimdilik kullanılmamakta,ileride kullanılabilir.)
-  Future<List<Map<String, dynamic>>> getLastWeightChangeAsc(List<String> selectedAnimals) async {
+  Future<List<Map<String, dynamic>>> getLastWeightChangeAsc(
+      List<String> selectedAnimals) async {
     Database? db = await database;
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekleyin
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid, 
@@ -350,12 +356,14 @@ class DatabaseWeightReportHelper {
   }
 
   // Genel ağırlık değişimini hesaplayan fonksiyon(Şimdilik kullanılmamakta,ileride kullanılabilir.)
-  Future<List<Map<String, dynamic>>> getGeneralWeightChange(List<String> selectedAnimals) async {
+  Future<List<Map<String, dynamic>>> getGeneralWeightChange(
+      List<String> selectedAnimals) async {
     Database? db = await database;
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekleyin
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid, 
@@ -462,12 +470,14 @@ class DatabaseWeightReportHelper {
   }
 
   // Genel ağırlık değişimini hesaplayan fonksiyon (Büyükten küçüğe sıralama)(Şimdilik kullanılmamakta,ileride kullanılabilir.)
-  Future<List<Map<String, dynamic>>> getGeneralWeightChangeDesc(List<String> selectedAnimals) async {
+  Future<List<Map<String, dynamic>>> getGeneralWeightChangeDesc(
+      List<String> selectedAnimals) async {
     Database? db = await database;
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid, 
@@ -575,12 +585,14 @@ class DatabaseWeightReportHelper {
   }
 
   // Genel ağırlık değişimini hesaplayan fonksiyon (Küçükten büyüğe sıralama)(Şimdilik kullanılmamakta,ileride kullanılabilir.)
-  Future<List<Map<String, dynamic>>> getGeneralWeightChangeAsc(List<String> selectedAnimals) async {
+  Future<List<Map<String, dynamic>>> getGeneralWeightChangeAsc(
+      List<String> selectedAnimals) async {
     Database? db = await database;
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid, 
@@ -694,7 +706,8 @@ class DatabaseWeightReportHelper {
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid,
@@ -803,7 +816,6 @@ class DatabaseWeightReportHelper {
     }
   }
 
-
   // Son ağırlık değişimi belirli aralıkta olan hayvanları azalan sırayla getiren fonksiyon
   Future<List<Map<String, dynamic>>> getLastWeightChangeBetweenDesc(
       double minWeight, double maxWeight, List<String> selectedAnimals) async {
@@ -811,7 +823,8 @@ class DatabaseWeightReportHelper {
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid,
@@ -928,7 +941,8 @@ class DatabaseWeightReportHelper {
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid, 
@@ -1045,7 +1059,8 @@ class DatabaseWeightReportHelper {
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid,
@@ -1154,7 +1169,6 @@ class DatabaseWeightReportHelper {
     }
   }
 
-
   // Genel ağırlık değişimi belirli aralıkta olan hayvanları azalan sırayla getiren fonksiyon
   Future<List<Map<String, dynamic>>> getGeneralWeightChangeBetweenDesc(
       double minWeight, double maxWeight, List<String> selectedAnimals) async {
@@ -1162,7 +1176,8 @@ class DatabaseWeightReportHelper {
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid,
@@ -1272,7 +1287,6 @@ class DatabaseWeightReportHelper {
     }
   }
 
-
   // Genel ağırlık değişimi belirli aralıkta olan hayvanları artan sırayla getiren fonksiyon
   Future<List<Map<String, dynamic>>> getGeneralWeightChangeBetweenAsc(
       double minWeight, double maxWeight, List<String> selectedAnimals) async {
@@ -1280,7 +1294,8 @@ class DatabaseWeightReportHelper {
 
     try {
       // selectedAnimals listesini dinamik olarak SQL sorgusuna ekliyoruz
-      String animalTypes = selectedAnimals.map((animal) => "'$animal'").join(',');
+      String animalTypes =
+          selectedAnimals.map((animal) => "'$animal'").join(',');
 
       List<Map<String, dynamic>> result = await db.rawQuery('''
     SELECT W.animalid,

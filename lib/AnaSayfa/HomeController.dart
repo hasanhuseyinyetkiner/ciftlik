@@ -112,7 +112,7 @@ class HomeController extends GetxController {
   Future<void> initializeServices() async {
     try {
       isLoading(true);
-      await _databaseService.init();
+      await _databaseService.initDatabase();
       await loadDashboardData();
       await syncData();
       isLoading(false);
@@ -125,24 +125,26 @@ class HomeController extends GetxController {
 
   Future<void> loadDashboardData() async {
     try {
-      final db = await _databaseService.database;
+      final db = await _databaseService
+          .getDatabase(); // database -> getDatabase olarak değiştirildi
 
       // Toplam aktif hayvan sayısı
       final totalResult = await db.rawQuery(
           'SELECT COUNT(*) as count FROM hayvanlar WHERE silindi = 0');
-      totalAnimals(Rx(totalResult.first['count'] as int));
+      totalAnimals(totalResult.first['count'] as int); // Düzeltilmiş atama
 
       // Aktif hayvan sayısı
       final activeResult = await db.rawQuery(
           'SELECT COUNT(*) as count FROM hayvanlar WHERE durum = "aktif" AND silindi = 0');
-      activeAnimals(Rx(activeResult.first['count'] as int));
+      activeAnimals(activeResult.first['count']
+          as int); // Rx<int> yerine doğrudan int değeri
 
       // Gebe hayvan sayısı
       final pregnantResult = await db.rawQuery('''
         SELECT COUNT(DISTINCT hayvan_id) as count FROM gebelik_kontrolleri 
         WHERE durum = "gebe" AND silindi = 0
       ''');
-      pregnantAnimals(Rx(pregnantResult.first['count'] as int));
+      pregnantAnimals(pregnantResult.first['count'] as int); // Düzeltildi
 
       // Hasta hayvan sayısı
       final sickResult = await db.rawQuery('''
@@ -150,17 +152,17 @@ class HomeController extends GetxController {
         WHERE tani IS NOT NULL AND silindi = 0
         AND muayene_tarihi >= date('now', '-30 days')
       ''');
-      sickAnimals(Rx(sickResult.first['count'] as int));
+      sickAnimals(sickResult.first['count'] as int); // Düzeltildi
 
       // Okunmamış bildirim sayısı
       final notifResult = await db.rawQuery(
           'SELECT COUNT(*) as count FROM bildirimler WHERE okundu = 0 AND silindi = 0');
-      unreadNotifications(Rx(notifResult.first['count'] as int));
+      unreadNotifications(notifResult.first['count'] as int); // Düzeltildi
 
       // Acil bildirim sayısı
       final urgentResult = await db.rawQuery(
           'SELECT COUNT(*) as count FROM bildirimler WHERE okundu = 0 AND tip = "acil" AND silindi = 0');
-      urgentNotifications(Rx(urgentResult.first['count'] as int));
+      urgentNotifications(urgentResult.first['count'] as int); // Düzeltildi
     } catch (e) {
       hasError(true);
       errorMessage('Gösterge paneli verileri yüklenirken hata: $e');
@@ -317,7 +319,7 @@ class HomeController extends GetxController {
     // Implementation of syncGebelikKontrolleri method
   }
 
-  Future<void> syncYemKayitlari(Map<String> data) async {
+  Future<void> syncYemKayitlari(Map<String, dynamic> data) async {
     // Implementation of syncYemKayitlari method
   }
 

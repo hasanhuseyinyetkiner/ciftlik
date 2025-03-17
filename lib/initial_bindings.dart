@@ -27,6 +27,8 @@ import 'GelirGiderHesaplama/FinanceController.dart';
 import 'BildirimSayfasi/NotificationController.dart';
 import 'TartimModulu/AutoWeightController.dart';
 import 'AsiYonetimi/AsiUygulamasiController.dart';
+import 'services/data_service.dart';
+import 'services/api_service.dart';
 
 /*
 * InitialBindings - Bağımlılık Enjeksiyonu Yapılandırması
@@ -69,6 +71,13 @@ import 'AsiYonetimi/AsiUygulamasiController.dart';
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
+    // First initialize core services
+    final dbService = Get.put(DatabaseService(), permanent: true);
+    final apiService = Get.put(ApiService(), permanent: true);
+
+    // Initialize DataService after core services
+    final dataService = Get.put(DataService(), permanent: true);
+
     // Auth related bindings
     Get.lazyPut<AuthService>(() => AuthService());
     Get.lazyPut<AuthController>(() => AuthController());
