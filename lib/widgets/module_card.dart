@@ -1,107 +1,209 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/module_item.dart';
-import '../config/theme_config.dart';
 
 /// A card widget for displaying a module in the home screen
 class ModuleCard extends StatelessWidget {
   /// The module item to display
-  final ModuleItem module;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color iconBackgroundColor;
+  final VoidCallback onTap;
+  final bool isUnderDevelopment;
+  final double progress; // Development progress 0.0 to 1.0
+  final String? statusText; // Status text like "New", "Beta", etc.
+  final Color? statusColor; // Color for the status badge
 
   /// Constructor
   const ModuleCard({
     Key? key,
-    required this.module,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconBackgroundColor,
+    required this.onTap,
+    this.isUnderDevelopment = false,
+    this.progress = 0.0,
+    this.statusText,
+    this.statusColor,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          Get.toNamed(module.route);
-        },
-        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
           decoration: BoxDecoration(
-            color: theme.cardTheme.color,
-            borderRadius: BorderRadius.circular(20),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: isDarkMode
-                    ? Colors.black.withOpacity(0.2)
-                    : ThemeConfig.shadowLight,
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                spreadRadius: 0,
+                offset: const Offset(0, 4),
               ),
             ],
-            border: Border.all(
-              color: module.color.withOpacity(0.3),
-              width: 1.5,
-            ),
           ),
           child: Stack(
             children: [
-              // Background pattern
-              Positioned(
-                right: -10,
-                top: -10,
-                child: Icon(
-                  module.icon,
-                  size: 80,
-                  color: module.color.withOpacity(0.05),
-                ),
-              ),
-
               // Card content
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Icon container
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: module.color.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        module.icon,
-                        color: module.color,
-                        size: 28,
-                      ),
+                    // Icon and title row
+                    Row(
+                      children: [
+                        // Icon
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: iconBackgroundColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            icon,
+                            color: iconBackgroundColor,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Title
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-
-                    const SizedBox(height: 12),
-
-                    // Title
-                    Text(
-                      module.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
 
                     // Subtitle
                     Text(
-                      module.subtitle,
-                      style: theme.textTheme.bodySmall,
+                      subtitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+
+                    // Development progress indicator (if relevant)
+                    if (isUnderDevelopment && progress > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Geliştirme',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                Text(
+                                  '${(progress * 100).toInt()}%',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: Colors.grey.shade200,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                iconBackgroundColor,
+                              ),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
+
+              // Status badge (if provided)
+              if (statusText != null)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor ?? Colors.green,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        topRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      statusText!,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // "Under development" badge if needed
+              if (isUnderDevelopment && statusText == null)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: Colors.orange,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        topRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'Geliştiriliyor',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

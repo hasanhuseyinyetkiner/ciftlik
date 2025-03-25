@@ -8,7 +8,7 @@ import 'hayvan_form_page.dart';
 
 class HayvanDetailPage extends StatelessWidget {
   final Hayvan hayvan;
-  final HayvanController controller = Get.find<HayvanController>();
+  final HayvanListController controller = Get.find<HayvanListController>();
 
   HayvanDetailPage({Key? key, required this.hayvan}) : super(key: key);
 

@@ -6,6 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:postgres/postgres.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'dart:io' show Platform;
 import 'config/theme_config.dart';
 import 'database/database_config.dart';
 import 'screens/home_screen.dart';
@@ -13,10 +17,18 @@ import 'screens/splash_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'services/database_service.dart';
 import 'services/api_service.dart';
-import 'routes/app_routes.dart';
+import 'services/supabase_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart';
 import 'SuruYonetimController.dart';
+import 'adapter.dart';
+import 'HayvanController.dart';
+import 'services/data_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'services/notification_service.dart';
+import 'services/connectivity_service.dart';
+import 'package:path/path.dart';
+import 'services/service_initializer.dart';
 
 /*
 * MerlabCiftlikYonetim - Ana Uygulama Dosyası
@@ -103,9 +115,19 @@ import 'pages/asilama_form_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize SQLite FFI
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  // Initialize timezone data
+  try {
+    tz.initializeTimeZones();
+    print('Timezones initialized successfully');
+  } catch (e) {
+    print('Error initializing timezones: $e');
+  }
+
+  // Initialize SQLite FFI only on desktop platforms (Windows, macOS, Linux)
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   try {
     await dotenv.load(fileName: ".env");
@@ -115,91 +137,196 @@ void main() async {
     // Continue even if .env file is missing
   }
 
-  // Initialize controllers
+  // Initialize Supabase
+  try {
+    await Supabase.initialize(
+      url: 'https://wahoyhkhwvetpopnopqa.supabase.co',
+      anonKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhaG95aGtod3ZldHBvcG5vcHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NjcwMTksImV4cCI6MjA1ODA0MzAxOX0.fG9eMAdGsFONMVKSIOt8QfkZPRBjrSsoKrxgCbgAbhY',
+    );
+    Get.put<SupabaseService>(SupabaseService());
+    print('Supabase initialized successfully');
+  } catch (e) {
+    print('Error initializing Supabase: $e');
+  }
+
+  // Initialize notification service
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // Initialize Supabase services
+  final supabaseUrl =
+      dotenv.env['SUPABASE_URL'] ?? 'https://wahoyhkhwvetpopnopqa.supabase.co';
+  final supabaseKey =
+      dotenv.env['SUPABASE_ANON_KEY'] ??
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhaG95aGtod3ZldHBvcG5vcHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NjcwMTksImV4cCI6MjA1ODA0MzAxOX0.fG9eMAdGsFONMVKSIOt8QfkZPRBjrSsoKrxgCbgAbhY';
+  final supabaseAdapter = SupabaseAdapter(
+    supabaseUrl: supabaseUrl,
+    supabaseKey: supabaseKey,
+  );
+  Get.put(supabaseAdapter);
+
+  // Initialize all services using our service initializer
+  await ServiceInitializer.initializeServices();
+
+  // Initialize ApiService and DataService
+  Get.put(ApiService());
+  Get.put(DataService());
+
+  // Initialize controllers for basic app functionality
   Get.put(SuruYonetimController());
+  Get.put(HayvanController());
 
   runApp(const MyApp());
 }
+
+// App route definitions
+final List<GetPage> appRoutes = [
+  GetPage(name: '/splash', page: () => SplashScreen()),
+  GetPage(name: '/home', page: () => HomeScreen()),
+  GetPage(name: '/login', page: () => LoginScreen()),
+
+  // Hayvan yönetimi
+  GetPage(name: '/hayvan_ekle', page: () => HayvanEklePage()),
+  GetPage(name: '/hayvan_listesi', page: () => HayvanListPage()),
+  GetPage(
+    name: '/hayvan_detay/:id',
+    page: () => HayvanDetailPage(hayvan: Get.arguments),
+  ),
+  GetPage(name: '/hayvan_form', page: () => HayvanFormPage(hayvan: null)),
+
+  // Tartım ve bluetooth sayfaları
+  GetPage(name: '/tartim_ekle', page: () => TartimEklePage()),
+  GetPage(name: '/weight_analysis', page: () => WeightAnalysisPage()),
+  GetPage(name: '/auto_weight', page: () => AutoWeightPage()),
+
+  // Süt yönetimi sayfaları
+  GetPage(name: '/sut_olcum', page: () => SutOlcumSayfasi()),
+  GetPage(name: '/sut_kalite', page: () => SutKaliteSayfasi()),
+  GetPage(name: '/sut_tanki', page: () => SutTankiSayfasi()),
+
+  // Sağlık yönetimi sayfaları
+  GetPage(name: '/asi_yonetimi', page: () => AsiSayfasi()),
+  GetPage(name: '/asi_takvimi', page: () => AsiTakvimiSayfasi()),
+  GetPage(name: '/muayene_sayfasi', page: () => MuayeneSayfasi()),
+  GetPage(name: '/hastalik_sayfasi', page: () => HastalikSayfasi()),
+
+  // Üreme takibi
+  GetPage(
+    name: '/ureme_takibi',
+    page: () => LoginScreen(),
+  ), // Placeholder route
+  // Yem yönetimi
+  GetPage(name: '/yem_sayfasi', page: () => YemSayfasi()),
+  GetPage(name: '/su_tuketimi_sayfasi', page: () => SuTuketimiSayfasi()),
+  GetPage(
+    name: '/rasyon_hesaplama_sayfasi',
+    page: () => RasyonHesaplamaSayfasi(),
+  ),
+
+  // Finansal yönetim
+  GetPage(name: '/gelir_gider_sayfasi', page: () => GelirGiderSayfasi()),
+  GetPage(name: '/finansal_ozet_sayfasi', page: () => FinansalOzetSayfasi()),
+  GetPage(name: '/raporlar', page: () => RaporlarSayfasi()),
+
+  // Diğer modüller
+  GetPage(name: '/konum_yonetim_sayfasi', page: () => KonumYonetimSayfasi()),
+  GetPage(name: '/sayim_sayfasi', page: () => SayimSayfasi()),
+  GetPage(
+    name: '/otomatik_ayirma_sayfasi',
+    page: () => OtomatikAyirmaSayfasi(),
+  ),
+
+  // Asi ve muayene sayfaları - dinamik parametreler ile
+  GetPage(name: '/asi_list', page: () => AsiListPage()),
+  GetPage(
+    name: '/asi_detail/:id',
+    page: () => AsiDetailPage(asi: Get.arguments),
+  ),
+  GetPage(name: '/asi_form', page: () => AsiFormPage()),
+  GetPage(name: '/asilama_list', page: () => AsilamaListPage()),
+  GetPage(
+    name: '/asilama_detail/:id',
+    page: () => AsilamaDetailPage(asilama: Get.arguments),
+  ),
+  GetPage(name: '/asilama_form', page: () => AsilamaFormPage()),
+  GetPage(name: '/muayene_list', page: () => MuayeneListPage()),
+  GetPage(
+    name: '/muayene_detail/:id',
+    page: () => MuayeneDetailPage(muayene: Get.arguments),
+  ),
+  GetPage(name: '/muayene_form', page: () => MuayeneFormPage()),
+];
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _initServices(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return MultiProvider(
-            providers: [
-              Provider<DatabaseService>(
-                create: (_) => snapshot.data as DatabaseService,
+    return GetMaterialApp(
+      title: "Çiftlik Yönetim Sistemi",
+      initialRoute: '/home',
+      getPages: appRoutes,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        useMaterial3: true,
+      ),
+      locale: const Locale('tr', 'TR'), // Varsayılan dil
+      fallbackLocale: const Locale('en', 'US'),
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('tr', 'TR'), Locale('en', 'US')],
+    );
+  }
+}
+
+class SplashScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo yerine Container kullanıyoruz
+            Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.brown,
+                borderRadius: BorderRadius.circular(20),
               ),
-              Provider<ApiService>(
-                create: (_) => ApiService(),
-              ),
-            ],
-            child: GetMaterialApp(
-              title: 'Çiftlik Yönetim',
-              debugShowCheckedModeBanner: false,
-              theme: ThemeConfig.getThemeLight(),
-              darkTheme: ThemeConfig.getThemeDark(),
-              themeMode: ThemeMode.system,
-              initialRoute: '/splash',
-              getPages: AppRoutes.routes,
-              builder: (context, child) {
-                // Disable overflow errors in the UI
-                ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-                  return const SizedBox.shrink(); // Empty widget when error occurs
-                };
-                
-                // Add global padding to prevent overflow issues
-                return MediaQuery(
-                  // Ensure overflow doesn't affect the UI
-                  data: MediaQuery.of(context).copyWith(
-                    padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: Text(
+                  'MERLAB',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                  child: child!,
-                );
-              },
-            ),
-          );
-        } else {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            home: Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/m.png',
-                      width: 100,
-                      height: 100,
-                    ),
-                    const SizedBox(height: 24),
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Veritabanı başlatılıyor...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
-          );
-        }
-      },
+            SizedBox(height: 20),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+            ),
+          ],
+        ),
+      ),
     );
-  }
-
-  Future<DatabaseService> _initServices() async {
-    final dbService = DatabaseService();
-    await dbService.init();
-    return dbService;
   }
 }

@@ -3,6 +3,7 @@ import '../screens/splash_screen.dart';
 import '../screens/login/login_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/calendar_screen.dart';
+import '../screens/supabase_test_screen.dart';
 import '../pages/hayvan_list_page.dart';
 import '../pages/hayvan_detail_page.dart';
 import '../pages/hayvan_form_page.dart';
@@ -40,6 +41,15 @@ import '../screens/profile_screen.dart';
 import '../screens/statistics_screen.dart';
 import '../screens/settings_screen.dart';
 
+part of 'app_pages.dart';
+
+abstract class Routes {
+  Routes._();
+  static const SPLASH = '/splash';
+  static const HOME = '/home';
+  static const LOGIN = '/login';
+}
+
 class AppRoutes {
   static const String splash = '/splash';
   static const String login = '/login';
@@ -67,6 +77,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String notifications = '/notifications';
   static const String profile = '/profile';
+  static const String supabaseTest = '/supabase-test';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashScreen()),
@@ -79,6 +90,7 @@ class AppRoutes {
     GetPage(name: settings, page: () => SettingsScreen()),
     GetPage(name: notifications, page: () => const NotificationsScreen()),
     GetPage(name: profile, page: () => const ProfileScreen()),
+    GetPage(name: supabaseTest, page: () => const SupabaseTestScreen()),
 
     // Core Module Routes
     GetPage(

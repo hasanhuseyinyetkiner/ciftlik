@@ -1,0 +1,231 @@
+{
+  "formatOnSave": true,
+  "editor": {
+    "tabSize": 2,
+    "insertSpaces": true,
+    "rulers": [80, 100],
+    "wordWrap": "on",
+    "wordWrapColumn": 100
+  },
+  "dart": {
+    "lineLength": 80,
+    "enablePreviewDart3": true,
+    "flutterSdkPath": "auto",
+    "analysisExcludedFolders": [
+      "build",
+      ".dart_tool",
+      ".pub-cache",
+      ".pub"
+    ]
+  },
+  "files": {
+    "exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "**/Thumbs.db": true,
+      "**/*.freezed.dart": true,
+      "**/*.g.dart": true,
+      "**/*.gr.dart": true,
+      "**/generated_plugin_registrant.dart": true
+    },
+    "associations": {
+      "*.dart": "dart",
+      "pubspec.yaml": "yaml",
+      "*.yml": "yaml",
+      "*.yaml": "yaml",
+      "*.json": "json",
+      "*.md": "markdown",
+      "*.svg": "svg",
+      "*.png": "image",
+      "*.jpg": "image",
+      "*.jpeg": "image",
+      "*.gif": "image",
+      "*.ico": "image",
+      "*.env": "env"
+    }
+  },
+  "search": {
+    "exclude": {
+      "**/node_modules": true,
+      "**/bower_components": true,
+      "**/*.code-search": true,
+      "**/build": true,
+      "**/.dart_tool": true,
+      "**/.pub-cache": true,
+      "**/.pub": true,
+      "**/android": true,
+      "**/ios": true,
+      "**/web": true,
+      "**/linux": true,
+      "**/macos": true,
+      "**/windows": true
+    }
+  },
+  "mcp": {
+    "enabled": true,
+    "autoImport": true,
+    "providers": {
+      "supabase": {
+        "enabled": true,
+        "maxConcurrentCalls": 5,
+        "timeout": 30000
+      },
+      "figma": {
+        "enabled": true,
+        "maxConcurrentCalls": 3,
+        "timeout": 30000
+      },
+      "github": {
+        "enabled": true,
+        "maxConcurrentCalls": 5,
+        "timeout": 30000
+      }
+    }
+  },
+  "lint": {
+    "dart": {
+      "rules": {
+        "always_declare_return_types": true,
+        "always_put_required_named_parameters_first": true,
+        "always_require_non_null_named_parameters": true,
+        "annotate_overrides": true,
+        "avoid_empty_else": true,
+        "avoid_init_to_null": true,
+        "avoid_null_checks_in_equality_operators": true,
+        "avoid_relative_lib_imports": true,
+        "avoid_return_types_on_setters": true,
+        "avoid_shadowing_type_parameters": true,
+        "avoid_types_as_parameter_names": true,
+        "camel_case_extensions": true,
+        "curly_braces_in_flow_control_structures": true,
+        "empty_catches": true,
+        "file_names": true,
+        "library_names": true,
+        "library_prefixes": true,
+        "no_duplicate_case_values": true,
+        "null_closures": true,
+        "prefer_adjacent_string_concatenation": true,
+        "prefer_collection_literals": true,
+        "prefer_conditional_assignment": true,
+        "prefer_contains": true,
+        "prefer_equal_for_default_values": true,
+        "prefer_final_fields": true,
+        "prefer_for_elements_to_map_fromIterable": true,
+        "prefer_generic_function_type_aliases": true,
+        "prefer_if_null_operators": true,
+        "prefer_is_empty": true,
+        "prefer_is_not_empty": true,
+        "prefer_iterable_whereType": true,
+        "prefer_single_quotes": true,
+        "prefer_spread_collections": true,
+        "recursive_getters": true,
+        "slash_for_doc_comments": true,
+        "type_init_formals": true,
+        "unawaited_futures": true,
+        "unnecessary_brace_in_string_interps": true,
+        "unnecessary_const": true,
+        "unnecessary_getters_setters": true,
+        "unnecessary_new": true,
+        "unnecessary_null_in_if_null_operators": true,
+        "unnecessary_this": true,
+        "unrelated_type_equality_checks": true,
+        "use_function_type_syntax_for_parameters": true,
+        "use_rethrow_when_possible": true,
+        "valid_regexps": true
+      }
+    }
+  },
+  "formatting": {
+    "dart": {
+      "insertSpaces": true,
+      "tabSize": 2,
+      "lineLength": 80
+    }
+  },
+  "snippets": {
+    "dart": {
+      "stful": {
+        "prefix": "stful",
+        "body": [
+          "class ${1:WidgetName} extends StatefulWidget {",
+          "  const ${1:WidgetName}({Key? key}) : super(key: key);",
+          "",
+          "  @override",
+          "  State<${1:WidgetName}> createState() => _${1:WidgetName}State();",
+          "}",
+          "",
+          "class _${1:WidgetName}State extends State<${1:WidgetName}> {",
+          "  @override",
+          "  Widget build(BuildContext context) {",
+          "    return ${2:Container}(",
+          "      ${3}",
+          "    );",
+          "  }",
+          "}"
+        ],
+        "description": "Creates a Stateful widget"
+      },
+      "stless": {
+        "prefix": "stless",
+        "body": [
+          "class ${1:WidgetName} extends StatelessWidget {",
+          "  const ${1:WidgetName}({Key? key}) : super(key: key);",
+          "",
+          "  @override",
+          "  Widget build(BuildContext context) {",
+          "    return ${2:Container}(",
+          "      ${3}",
+          "    );",
+          "  }",
+          "}"
+        ],
+        "description": "Creates a Stateless widget"
+      },
+      "getx": {
+        "prefix": "getx",
+        "body": [
+          "class ${1:ControllerName} extends GetxController {",
+          "  ${2}",
+          "}"
+        ],
+        "description": "Creates a GetX controller"
+      }
+    }
+  },
+  "project": {
+    "name": "ciftlik_yonetim",
+    "type": "flutter",
+    "organization": "com.example",
+    "version": "1.0.0",
+    "environment": {
+      "sdk": ">=3.2.3 <4.0.0",
+      "flutter": ">=3.0.0"
+    }
+  },
+  "commands": {
+    "build": "flutter build",
+    "test": "flutter test",
+    "clean": "flutter clean",
+    "run": "flutter run",
+    "analyze": "flutter analyze",
+    "format": "flutter format .",
+    "getPubDeps": "flutter pub get"
+  },
+  "folders": {
+    "lib": {
+      "include": ["**/*.dart"],
+      "exclude": ["**/*.g.dart", "**/*.freezed.dart"]
+    },
+    "test": {
+      "include": ["**/*_test.dart"],
+      "exclude": []
+    },
+    "assets": {
+      "include": ["**/*"],
+      "exclude": []
+    }
+  }
+} 

@@ -6,11 +6,17 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'dart:io';
 import '../services/database_service.dart';
+import '../services/data_service.dart';
 import 'package:share_plus/share_plus.dart';
 
 class WeightAnalysisController extends GetxController {
   DatabaseService? _dbService;
+  final DataService _dataService = Get.find<DataService>();
   final _dbConnected = false.obs;
+
+  // Track sync status
+  final isSyncing = false.obs;
+  final lastSyncTime = Rxn<DateTime>();
 
   final isLoading = true.obs;
   final selectedPeriod = 30.obs;
@@ -53,7 +59,94 @@ class WeightAnalysisController extends GetxController {
       _dbConnected.value = false;
       print('Database service not available: $e');
     }
+
+    // Force sync before fetching data if Supabase is available
+    if (_dataService.isUsingSupabase) {
+      await syncWeightData();
+    }
+
     fetchData();
+  }
+
+  // Sync weight data with Supabase
+  Future<bool> syncWeightData() async {
+    if (!_dataService.isUsingSupabase) return false;
+
+    isSyncing.value = true;
+
+    try {
+      final success = await _dataService.syncAfterUserInteraction(
+        specificTables: ['tartim', 'agirlik_olcum'],
+      );
+
+      if (success) {
+        lastSyncTime.value = DateTime.now();
+        print('Weight analysis data synced with Supabase');
+      }
+
+      return success;
+    } catch (e) {
+      print('Error syncing weight analysis data: $e');
+      return false;
+    } finally {
+      isSyncing.value = false;
+    }
+  }
+
+  // Export data to Supabase
+  Future<bool> exportToSupabase() async {
+    if (!_dataService.isUsingSupabase) {
+      Get.snackbar(
+        'Senkronizasyon Hatası',
+        'Supabase bağlantısı aktif değil. Çevrimdışı moddasınız.',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+
+    isSyncing.value = true;
+
+    try {
+      // First ensure local data is up to date
+      await fetchData();
+
+      // For each weight record, ensure it's in Supabase
+      for (final record in weightData) {
+        // Skip if already in Supabase (would need a flag for this)
+        // For now, we'll try to save each record
+        await _dataService.saveData(
+          apiEndpoint: 'WeightMeasurements',
+          tableName: 'tartim',
+          data: record,
+        );
+      }
+
+      // Sync all data
+      final success = await syncWeightData();
+
+      if (success) {
+        Get.snackbar(
+          'Başarılı',
+          'Ağırlık verileri Supabase\'e aktarıldı',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+
+      return success;
+    } catch (e) {
+      print('Error exporting to Supabase: $e');
+      Get.snackbar(
+        'Hata',
+        'Veriler Supabase\'e aktarılırken hata oluştu: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isSyncing.value = false;
+    }
   }
 
   Future<void> fetchData() async {

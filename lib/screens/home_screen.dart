@@ -1,53 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:get/get.dart';
-import '../services/api_service.dart';
-import '../services/database_service.dart';
-import '../models/models.dart';
-import '../AsiYonetimi/AsiSayfasi.dart';
-import '../AsiYonetimi/AsiTakvimiSayfasi.dart';
-import '../MuayeneSayfasi/MuayeneSayfasi.dart';
-import '../HastalikSayfalari/HastalikSayfasi.dart';
-import '../SutYonetimi/SutOlcumSayfasi.dart';
-import '../SutYonetimi/SutKaliteSayfasi.dart';
-import '../SutYonetimi/SutTankiSayfasi.dart';
-import '../TartimModulu/TartimEklePage.dart';
-import '../TartimModulu/WeightAnalysisPage.dart';
-import '../TartimModulu/AutoWeightPage.dart';
-import '../YemYonetimi/YemSayfasi.dart';
-import '../YemYonetimi/SuTuketimiSayfasi.dart';
-import '../RasyonHesaplama/RasyonHesaplamaSayfasi.dart';
-import '../GelirGiderHesaplama/GelirGiderSayfasi.dart';
-import '../RaporModulu/FinansalOzetSayfasi.dart';
-import '../RaporModulu/RaporlarSayfasi.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import '../widgets/module_card.dart';
-import '../config/theme_config.dart';
-import '../models/module_item.dart';
-import '../SutYonetimi/SutOlcumController.dart';
-import '../EklemeSayfalari/OlcumEkleme/OlcumController.dart';
-import '../TartimModulu/WeightAnalysisController.dart';
-import '../TartimModulu/AutoWeightController.dart';
-import '../EklemeSayfalari/BuzagiEkleme/AddBirthBuzagiController.dart';
-import '../EklemeSayfalari/KuzuEkleme/AddBirthKuzuController.dart';
-import '../Hayvanlar/AnimalController.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-// This fixed function wrapper will help us avoid the initializer issue
-VoidCallback createModuleCallback(BuildContext context, String moduleName) {
-  return () {
-    Get.snackbar(
-      'Modül Geliştirme Aşamasında',
-      '$moduleName modülü şu anda geliştirme aşamasındadır.',
-      backgroundColor: Colors.orange.withOpacity(0.8),
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 3),
-    );
-  };
-}
+import '../models/hayvan.dart';
+import '../models/saglik_kaydi.dart';
+import '../models/sut_olcum.dart';
+import '../adapter.dart';
+import '../services/data_service.dart';
+import '../widgets/module_card.dart';
+import '../services/connectivity_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -57,555 +20,255 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
   bool _isLoading = true;
   bool _isSearching = false;
-  final TextEditingController _searchController = TextEditingController();
-  Map<String, dynamic> _data = {};
+  String _searchQuery = '';
   List<Hayvan> _hayvanlar = [];
-  List<Yem> _yemler = [];
   List<SaglikKaydi> _saglikKayitlari = [];
   List<SutOlcum> _sutOlcumleri = [];
-  List<GelirGider> _gelirGider = [];
-
-  // Ana kategoriler
-  final List<ModuleCategory> categories = [
-    ModuleCategory(
-      title: 'Sağlık Yönetimi',
-      icon: Icons.local_hospital,
-      color: Colors.red.shade400,
-      modules: [
-        ModuleItem(
-          title: 'Muayene',
-          icon: Icons.medical_services,
-          color: Colors.red,
-          onTap: () {
-            Get.toNamed('/muayene');
-          },
-        ),
-        ModuleItem(
-          title: 'Aşı Yönetimi',
-          icon: Icons.medication,
-          color: Colors.orange,
-          onTap: () {
-            Get.toNamed('/asi_yonetimi');
-          },
-        ),
-        ModuleItem(
-          title: 'Aşı Takvimi',
-          icon: Icons.calendar_month,
-          color: Colors.orange.shade700,
-          onTap: () {
-            Get.toNamed('/asi_takvimi');
-          },
-        ),
-        ModuleItem(
-          title: 'Hastalık Takibi',
-          icon: Icons.local_hospital,
-          color: Colors.red.shade700,
-          onTap: () {
-            Get.toNamed('/hastalik_takibi');
-          },
-        ),
-      ],
-    ),
-    ModuleCategory(
-      title: 'Üretim Takibi',
-      icon: Icons.water_drop,
-      color: Colors.blue.shade400,
-      modules: [
-        ModuleItem(
-          title: 'Süt Ölçümü',
-          icon: Icons.water_drop,
-          color: Colors.blue,
-          onTap: () {
-            Get.toNamed('/sut_olcum');
-          },
-        ),
-        ModuleItem(
-          title: 'Süt Kalitesi',
-          icon: Icons.science,
-          color: Colors.blue.shade700,
-          onTap: () {
-            Get.toNamed('/sut_kalitesi');
-          },
-        ),
-        ModuleItem(
-          title: 'Süt Tankı',
-          icon: Icons.storage,
-          color: Colors.blue.shade300,
-          onTap: () {
-            Get.toNamed('/sut_tanki');
-          },
-        ),
-      ],
-    ),
-    ModuleCategory(
-      title: 'Tartım ve Ağırlık',
-      icon: Icons.monitor_weight,
-      color: Colors.green.shade400,
-      modules: [
-        ModuleItem(
-          title: 'Tartım Ekle',
-          icon: Icons.add_circle,
-          color: Colors.green,
-          onTap: () {
-            Get.toNamed('/tartim_ekle');
-          },
-        ),
-        ModuleItem(
-          title: 'Ağırlık Analizi',
-          icon: Icons.trending_up,
-          color: Colors.green.shade700,
-          onTap: () {
-            Get.toNamed('/agirlik_analizi');
-          },
-        ),
-        ModuleItem(
-          title: 'Otomatik Tartım',
-          icon: Icons.scale,
-          color: Colors.green.shade300,
-          onTap: () {
-            Get.toNamed('/otomatik_tartim');
-          },
-        ),
-      ],
-    ),
-    ModuleCategory(
-      title: 'Yem ve Su Yönetimi',
-      icon: Icons.restaurant,
-      color: Colors.orange.shade400,
-      modules: [
-        ModuleItem(
-          title: 'Yem Yönetimi',
-          icon: Icons.fastfood,
-          color: Colors.orange,
-          onTap: () {
-            Get.toNamed('/yem_yonetimi');
-          },
-        ),
-        ModuleItem(
-          title: 'Su Tüketimi',
-          icon: Icons.water,
-          color: Colors.orange.shade700,
-          onTap: () {
-            Get.toNamed('/su_tuketimi');
-          },
-        ),
-        ModuleItem(
-          title: 'Rasyon Hesaplama',
-          icon: Icons.calculate,
-          color: Colors.orange.shade300,
-          onTap: () {
-            Get.toNamed('/rasyon_hesaplama');
-          },
-        ),
-      ],
-    ),
-    ModuleCategory(
-      title: 'Finansal Yönetim',
-      icon: Icons.attach_money,
-      color: Colors.purple.shade400,
-      modules: [
-        ModuleItem(
-          title: 'Gelir-Gider',
-          icon: Icons.account_balance_wallet,
-          color: Colors.purple,
-          onTap: () {
-            Get.toNamed('/gelir_gider');
-          },
-        ),
-        ModuleItem(
-          title: 'Finansal Özet',
-          icon: Icons.pie_chart,
-          color: Colors.purple.shade700,
-          onTap: () {
-            Get.toNamed('/finansal_ozet');
-          },
-        ),
-        ModuleItem(
-          title: 'Raporlar',
-          icon: Icons.bar_chart,
-          color: Colors.purple.shade300,
-          onTap: () {
-            Get.toNamed('/raporlar');
-          },
-        ),
-      ],
-    ),
-    ModuleCategory(
-      title: 'Sürü Yönetimi',
-      icon: Icons.group,
-      color: Colors.indigo.shade400,
-      modules: [
-        ModuleItem(
-          title: 'Hayvan Konumları',
-          icon: Icons.location_on,
-          color: Colors.indigo,
-          onTap: () {
-            Get.toNamed('/konum_yonetimi');
-          },
-        ),
-        ModuleItem(
-          title: 'Sayım',
-          icon: Icons.format_list_numbered,
-          color: Colors.indigo.shade700,
-          onTap: () {
-            Get.toNamed('/sayim');
-          },
-        ),
-        ModuleItem(
-          title: 'Otomatik Ayırma',
-          icon: Icons.call_split,
-          color: Colors.indigo.shade300,
-          onTap: () {
-            Get.toNamed('/otomatik_ayirma');
-          },
-        ),
-      ],
-    ),
-  ];
+  late ConnectivityService _connectivityService;
 
   @override
   void initState() {
     super.initState();
-    _registerControllers();
-    _initDatabaseTables();
-    _loadData();
+    _connectivityService = Get.find<ConnectivityService>();
+    _fetchData();
   }
 
-  void _registerControllers() {
+  // Fetch data from Supabase
+  Future<void> _fetchData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      // Only initialize the controllers absolutely necessary for the home screen
-      if (!Get.isRegistered<SutOlcumController>()) {
-        Get.put(SutOlcumController());
+      final supabaseAdapter = Get.find<SupabaseAdapter>();
+
+      // Fetch hayvanlar
+      final hayvanlarData = await supabaseAdapter.getHayvanlar();
+      _hayvanlar = hayvanlarData.map((item) => Hayvan.fromJson(item)).toList();
+
+      // Fetch sağlık kayıtları using direct HTTP request
+      try {
+        final response = await http.get(
+          Uri.parse(
+              '${supabaseAdapter.supabaseUrl}/rest/v1/saglik_kayitlari?select=*'),
+          headers: {
+            'apikey': supabaseAdapter.supabaseKey,
+            'Authorization': 'Bearer ${supabaseAdapter.supabaseKey}',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> saglikData = jsonDecode(response.body);
+          _saglikKayitlari =
+              saglikData.map((item) => SaglikKaydi.fromJson(item)).toList();
+        } else {
+          print('Sağlık kayıtları alınamadı: ${response.statusCode}');
+          _saglikKayitlari = [];
+        }
+      } catch (e) {
+        print('Error fetching saglik kayitlari: $e');
+        _saglikKayitlari = [];
       }
 
-      // The other controllers can be initialized on-demand when their pages are opened
+      // Fetch süt ölçümleri using direct HTTP request
+      try {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day)
+            .toIso8601String()
+            .substring(0, 10);
+
+        final response = await http.get(
+          Uri.parse(
+              '${supabaseAdapter.supabaseUrl}/rest/v1/sut_olcum?select=*&tarih=like.$today%'),
+          headers: {
+            'apikey': supabaseAdapter.supabaseKey,
+            'Authorization': 'Bearer ${supabaseAdapter.supabaseKey}',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> sutData = jsonDecode(response.body);
+          _sutOlcumleri =
+              sutData.map((item) => SutOlcum.fromJson(item)).toList();
+        } else {
+          print('Süt ölçümleri alınamadı: ${response.statusCode}');
+          _sutOlcumleri = [];
+        }
+      } catch (e) {
+        print('Error fetching sut olcumleri: $e');
+        _sutOlcumleri = [];
+      }
     } catch (e) {
-      print('Controller registration error: $e');
-    }
-  }
-
-  Future<void> _initDatabaseTables() async {
-    try {
-      final dbService = Provider.of<DatabaseService>(context, listen: false);
-      await dbService.createWeightModuleTables();
-      print('Weight module tables created successfully');
-    } catch (e) {
-      print('Error creating database tables: $e');
-      // Continue with app initialization even if table creation fails
-    }
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      final apiService = Provider.of<ApiService>(context, listen: false);
-
-      // Handle API errors gracefully - use try-catch for each API call
-      try {
-        final hayvanlar = await apiService.getHayvanlar();
-        if (hayvanlar != null && hayvanlar['hayvanlar'] != null) {
-          _hayvanlar = (hayvanlar['hayvanlar'] as List)
-              .map((h) => Hayvan.fromJson(h))
-              .toList();
-        }
-      } catch (e) {
-        print('Error loading animals: $e');
+      print('Error fetching data: $e');
+      // Use sample data as fallback
+      _hayvanlar = [];
+      _saglikKayitlari = [];
+      _sutOlcumleri = [];
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
-
-      try {
-        final saglikKayitlari = await apiService.getSaglikKayitlari();
-        if (saglikKayitlari != null &&
-            saglikKayitlari['saglik_kayitlari'] != null) {
-          _saglikKayitlari = (saglikKayitlari['saglik_kayitlari'] as List)
-              .map((s) => SaglikKaydi.fromJson(s))
-              .toList();
-        }
-      } catch (e) {
-        print('Error loading health records: $e');
-      }
-
-      try {
-        final sutOlcumleri = await apiService.getSutOlcumleri();
-        if (sutOlcumleri != null && sutOlcumleri['sut_olcumleri'] != null) {
-          _sutOlcumleri = (sutOlcumleri['sut_olcumleri'] as List)
-              .map((s) => SutOlcum.fromJson(s))
-              .toList();
-        }
-      } catch (e) {
-        print('Error loading milk measurements: $e');
-      }
-
-      try {
-        final gelirGider = await apiService.getGelirGider();
-        if (gelirGider != null && gelirGider['gelir_gider'] != null) {
-          _gelirGider = (gelirGider['gelir_gider'] as List)
-              .map((g) => GelirGider.fromJson(g))
-              .toList();
-        }
-      } catch (e) {
-        print('Error loading income/expense: $e');
-      }
-
-      setState(() => _isLoading = false);
-    } catch (e) {
-      print('General data loading error: $e');
-      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: theme.colorScheme.primary,
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              color: theme.colorScheme.primary,
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  _buildSliverAppBar(theme),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (_isSearching) _buildSearchBar(theme),
-                          _buildDashboardStats(theme),
-                          _buildCategoryList(theme),
-                          _buildQuickActions(theme),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-      bottomNavigationBar: _buildBottomNavBar(theme),
-      floatingActionButton: _buildFloatingActionButton(theme),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
-  }
-
-  Widget _buildSliverAppBar(ThemeData theme) {
-    return SliverAppBar(
-      expandedHeight: 120.0,
-      floating: true,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: theme.scaffoldBackgroundColor,
-      flexibleSpace: FlexibleSpaceBar(
-        title: !_isSearching
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    height: 35,
-                    width: 110,
-                    padding: const EdgeInsets.all(4),
-                    child: Image.asset(
-                      'assets/images/Merlab.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ],
-              )
-            : null,
-        centerTitle: true,
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(
-            _isSearching ? Icons.close : Icons.search,
-            color: theme.colorScheme.onSurface,
+      appBar: AppBar(
+        title: Text('Çiftlik Yönetim'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _fetchData,
           ),
-          onPressed: () {
-            setState(() {
-              _isSearching = !_isSearching;
-              if (!_isSearching) {
-                _searchController.clear();
-              }
-            });
-          },
-        ),
-        IconButton(
-          icon: Icon(Icons.notifications_outlined,
-              color: theme.colorScheme.onSurface),
-          onPressed: () {
-            // Navigate to notifications page
-            Get.toNamed('/notifications');
-          },
-        ),
-        IconButton(
-          icon: Icon(Icons.person_outline, color: theme.colorScheme.onSurface),
-          onPressed: () {
-            // Navigate to profile page
-            Get.toNamed('/profile');
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchBar(ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        style: TextStyle(color: theme.colorScheme.onSurface),
-        decoration: InputDecoration(
-          hintText: 'Modül ara...',
-          hintStyle:
-              TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
-          border: InputBorder.none,
-          icon: Icon(Icons.search, color: theme.colorScheme.primary),
-          suffixIcon: IconButton(
-            icon: Icon(Icons.clear,
-                color: theme.colorScheme.onSurface.withOpacity(0.6)),
+          IconButton(
+            icon: Icon(Icons.search),
             onPressed: () {
-              _searchController.clear();
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchQuery = '';
+                }
+              });
             },
           ),
-        ),
-        onChanged: (value) {
-          // TODO: Implement search
-        },
+        ],
+      ),
+      drawer: _buildDrawer(),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _isSearching
+              ? _buildSearchResults()
+              : RefreshIndicator(
+                  onRefresh: _fetchData,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDashboard(),
+                        SizedBox(height: 24),
+                        _buildModuleGrid(),
+                      ],
+                    ),
+                  ),
+                ),
+    );
+  }
+
+  // Build drawer menu
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.green,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 36,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, size: 40, color: Colors.green),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Çiftlik Yönetim',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Obx(() => ListTile(
+                leading: Icon(
+                  _connectivityService.isConnected
+                      ? Icons.wifi
+                      : Icons.wifi_off,
+                  color: _connectivityService.isConnected
+                      ? Colors.green
+                      : Colors.red,
+                ),
+                title: Text(
+                  _connectivityService.isConnected ? 'Çevrimiçi' : 'Çevrimdışı',
+                ),
+                subtitle: Text(
+                  _connectivityService.isConnected
+                      ? 'Veri senkronizasyonu etkin'
+                      : 'Yerel veritabanı kullanılıyor',
+                ),
+                trailing: IconButton(
+                  icon: Icon(Icons.sync),
+                  onPressed: () {
+                    // Open sync dialog
+                    _showSyncDialog(context);
+                  },
+                ),
+              )),
+          ListTile(
+            leading: Icon(Icons.settings),
+            title: Text('Ayarlar'),
+            onTap: () {
+              Navigator.pop(context);
+              Get.toNamed('/ayarlar');
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.info),
+            title: Text('Hakkında'),
+            onTap: () {
+              Navigator.pop(context);
+              showAboutDialog(
+                context: context,
+                applicationName: 'Çiftlik Yönetim',
+                applicationVersion: '1.0.0',
+                applicationIcon: Icon(Icons.agriculture),
+                applicationLegalese: '© 2023 Çiftlik Yönetim',
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDashboardStats(ThemeData theme) {
-    final totalHayvan = _hayvanlar.length;
-    final totalSut = _sutOlcumleri.isNotEmpty
-        ? _sutOlcumleri
-            .map((s) => s.miktar)
-            .reduce((a, b) => a + b)
-            .toStringAsFixed(1)
-        : '0';
-    final totalGelir = _gelirGider
-        .where((g) => g.tur == 'gelir')
-        .map((g) => g.miktar)
-        .fold(0.0, (a, b) => a + b);
-
+  // Build search results
+  Widget _buildSearchResults() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Günlük İstatistikler',
-            style: theme.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 180,
-            child: AnimationLimiter(
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  AnimationConfiguration.staggeredList(
-                    position: 0,
-                    duration: const Duration(milliseconds: 375),
-                    child: SlideAnimation(
-                      horizontalOffset: 50.0,
-                      child: FadeInAnimation(
-                        child: _buildStatCard(
-                          'Toplam Hayvan',
-                          totalHayvan.toString(),
-                          Icons.pets,
-                          theme.colorScheme.primary,
-                          [
-                            ChartData('Ocak', 100),
-                            ChartData('Şubat', 110),
-                            ChartData('Mart', totalHayvan.toDouble()),
-                          ],
-                          theme,
-                        ),
-                      ),
-                    ),
-                  ),
-                  AnimationConfiguration.staggeredList(
-                    position: 1,
-                    duration: const Duration(milliseconds: 375),
-                    child: SlideAnimation(
-                      horizontalOffset: 50.0,
-                      child: FadeInAnimation(
-                        child: _buildStatCard(
-                          'Günlük Süt',
-                          '$totalSut L',
-                          Icons.water_drop,
-                          theme.colorScheme.secondary,
-                          [
-                            ChartData('Ocak', 200),
-                            ChartData('Şubat', 230),
-                            ChartData(
-                                'Mart',
-                                double.parse(totalSut) +
-                                    1), // +1 to prevent 0 value error
-                          ],
-                          theme,
-                        ),
-                      ),
-                    ),
-                  ),
-                  AnimationConfiguration.staggeredList(
-                    position: 2,
-                    duration: const Duration(milliseconds: 375),
-                    child: SlideAnimation(
-                      horizontalOffset: 50.0,
-                      child: FadeInAnimation(
-                        child: _buildStatCard(
-                          'Toplam Gelir',
-                          '${totalGelir.toStringAsFixed(2)} ₺',
-                          Icons.attach_money,
-                          Colors.purple,
-                          [
-                            ChartData('Ocak', totalGelir * 0.8),
-                            ChartData('Şubat', totalGelir * 0.9),
-                            ChartData(
-                                'Mart',
-                                totalGelir > 0
-                                    ? totalGelir
-                                    : 100), // Prevent 0 value
-                          ],
-                          theme,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+          TextField(
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Ara...',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          SizedBox(height: 16),
+          Expanded(
+            child: ListView(
+              children: [
+                // Search results would go here
+                Text('Arama sonuçları burada gösterilecek'),
+              ],
             ),
           ),
         ],
@@ -613,25 +276,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    List<ChartData> data,
-    ThemeData theme,
-  ) {
+  // Build dashboard overview with expanded farm summary
+  Widget _buildDashboard() {
     return Container(
-      width: 200,
-      margin: const EdgeInsets.only(right: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        gradient: LinearGradient(
+          colors: [Colors.green.shade700, Colors.green.shade500],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
+            spreadRadius: 2,
             offset: const Offset(0, 4),
           ),
         ],
@@ -640,30 +301,37 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+              Text(
+                'Çiftlik Özeti',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-                child: Icon(icon, color: color, size: 24),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                      ),
+                    Icon(
+                      Icons.sync,
+                      color: Colors.white,
+                      size: 16,
                     ),
+                    SizedBox(width: 4),
                     Text(
-                      value,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      _isLoading
+                          ? 'Yükleniyor...'
+                          : 'Son Güncelleme: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -672,33 +340,128 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Expanded(child: _buildMiniChart(data, color, theme)),
-        ],
-      ),
-    );
-  }
+          Row(
+            children: [
+              _buildSummaryCard(
+                title: 'Toplam Hayvan',
+                value: _hayvanlar.length.toString(),
+                icon: Icons.pets,
+                color: Colors.orange,
+              ),
+              const SizedBox(width: 12),
+              _buildSummaryCard(
+                title: 'Günlük Süt',
+                value: _sutOlcumleri.isEmpty
+                    ? '0 L'
+                    : '${_sutOlcumleri.fold<double>(0, (sum, item) => sum + (item.miktar ?? 0)).toStringAsFixed(1)} L',
+                icon: Icons.water_drop,
+                color: Colors.blue,
+              ),
+              const SizedBox(width: 12),
+              _buildSummaryCard(
+                title: 'Bakım Gereken',
+                value: _saglikKayitlari
+                    .where((kayit) =>
+                        kayit.kontrolTarihi != null &&
+                        kayit.kontrolTarihi!.isBefore(DateTime.now()) &&
+                        kayit.durum != 'Tamamlandı')
+                    .length
+                    .toString(),
+                icon: Icons.medical_services,
+                color: Colors.red,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
 
-  Widget _buildMiniChart(List<ChartData> data, Color color, ThemeData theme) {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(show: false),
-        titlesData: FlTitlesData(show: false),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: data
-                .asMap()
-                .entries
-                .map((e) => FlSpot(e.key.toDouble(), e.value.value))
-                .toList(),
-            isCurved: true,
-            color: color,
-            barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: color.withOpacity(0.1),
+          // Additional farm summary information
+          Row(
+            children: [
+              _buildSummaryCard(
+                title: 'Aktif Tedaviler',
+                value: _saglikKayitlari
+                    .where((kayit) => kayit.durum == 'Devam Ediyor')
+                    .length
+                    .toString(),
+                icon: Icons.healing,
+                color: Colors.purple,
+              ),
+              const SizedBox(width: 12),
+              _buildSummaryCard(
+                title: 'Bugünkü Aşılar',
+                value: _saglikKayitlari
+                    .where((kayit) =>
+                        kayit.tarih.day == DateTime.now().day &&
+                        kayit.tarih.month == DateTime.now().month &&
+                        kayit.tarih.year == DateTime.now().year &&
+                        kayit.tedaviTuru.toLowerCase().contains('aşı'))
+                    .length
+                    .toString(),
+                icon: Icons.vaccines,
+                color: Colors.teal,
+              ),
+              const SizedBox(width: 12),
+              _buildSummaryCard(
+                title: 'Senkron Durumu',
+                value: _connectivityService.isConnected ? 'Aktif' : 'Pasif',
+                icon: Icons.sync,
+                color: _connectivityService.isConnected
+                    ? Colors.green
+                    : Colors.red,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+          Text(
+            'Hızlı Erişim',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildQuickAccessButton(
+                  icon: Icons.pets_outlined,
+                  label: 'Hayvan Ekle',
+                  onTap: () => Get.toNamed('/hayvan_ekle'),
+                ),
+                SizedBox(width: 16),
+                _buildQuickAccessButton(
+                  icon: Icons.water_drop_outlined,
+                  label: 'Süt Ölçümü',
+                  onTap: () => Get.toNamed('/sut_olcum'),
+                ),
+                SizedBox(width: 16),
+                _buildQuickAccessButton(
+                  icon: Icons.medical_services_outlined,
+                  label: 'Aşı Kaydı',
+                  onTap: () => Get.toNamed('/asi_yonetimi'),
+                ),
+                SizedBox(width: 16),
+                _buildQuickAccessButton(
+                  icon: Icons.monitor_weight,
+                  label: 'Tartım',
+                  onTap: () => Get.toNamed('/auto_weight'),
+                ),
+                SizedBox(width: 16),
+                _buildQuickAccessButton(
+                  icon: Icons.bar_chart,
+                  label: 'Raporlar',
+                  onTap: () => Get.toNamed('/raporlar'),
+                ),
+                SizedBox(width: 16),
+                _buildQuickAccessButton(
+                  icon: Icons.grass,
+                  label: 'Yem',
+                  onTap: () => Get.toNamed('/yem_sayfasi'),
+                ),
+              ],
             ),
           ),
         ],
@@ -706,496 +469,347 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryList(ThemeData theme) {
+  // Build summary card for dashboard
+  Widget _buildSummaryCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Wrap in Flexible to prevent overflow
+            Flexible(
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: color,
+                    size: 16, // Reduce size slightly
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 16, // Reduce from 18 to 16
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build quick access button for dashboard
+  Widget _buildQuickAccessButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 70, // Fixed width to prevent overflow
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build module grid
+  Widget _buildModuleGrid() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Modüller',
-          style: theme.textTheme.titleLarge,
-        ),
-        const SizedBox(height: 16),
-        AnimationLimiter(
-          child: ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              return AnimationConfiguration.staggeredList(
-                position: index,
-                duration: const Duration(milliseconds: 375),
-                child: SlideAnimation(
-                  verticalOffset: 50.0,
-                  child: FadeInAnimation(
-                    child: _buildCategoryCard(categories[index], theme),
-                  ),
-                ),
-              );
-            },
+          'Çiftlik Modülleri',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.3,
+          ),
+          itemCount: _getModules().length,
+          itemBuilder: (context, index) {
+            final module = _getModules()[index];
+            return ModuleCard(
+              title: module['title'] as String,
+              subtitle: module['subtitle'] as String,
+              icon: module['icon'] as IconData,
+              iconBackgroundColor: module['color'] as Color,
+              onTap: module['onTap'] as VoidCallback,
+              isUnderDevelopment:
+                  module['isUnderDevelopment'] as bool? ?? false,
+              progress: module['progress'] as double? ?? 0.0,
+              statusText: module['statusText'] as String?,
+              statusColor: module['statusColor'] as Color?,
+            );
+          },
         ),
       ],
     );
   }
 
-  Widget _buildCategoryCard(ModuleCategory category, ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: category.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(category.icon, color: category.color),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                category.title,
-                style: theme.textTheme.titleMedium,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          AnimationLimiter(
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.1,
-              ),
-              itemCount: category.modules.length,
-              itemBuilder: (context, index) {
-                return AnimationConfiguration.staggeredGrid(
-                  position: index,
-                  duration: const Duration(milliseconds: 375),
-                  columnCount: 3,
-                  child: ScaleAnimation(
-                    child: FadeInAnimation(
-                      child: _buildModuleCard(category.modules[index], theme),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModuleCard(ModuleItem module, ThemeData theme) {
-    return Material(
-      color: theme.cardColor,
-      borderRadius: BorderRadius.circular(12),
-      elevation: 2,
-      child: InkWell(
-        onTap: module.onTap,
-        borderRadius: BorderRadius.circular(12),
-        splashColor: module.color.withOpacity(0.1),
-        highlightColor: module.color.withOpacity(0.05),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: module.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(module.icon, color: module.color, size: 24),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                module.title,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelMedium,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Hızlı İşlemler',
-            style: theme.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 16),
-          AnimationLimiter(
-            child: Column(
-              children: [
-                AnimationConfiguration.staggeredList(
-                  position: 0,
-                  duration: const Duration(milliseconds: 375),
-                  child: SlideAnimation(
-                    horizontalOffset: 50.0,
-                    child: FadeInAnimation(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _buildQuickActionCard(
-                              'Hayvan Ekle',
-                              Icons.pets,
-                              theme.colorScheme.primary,
-                              () {
-                                Get.toNamed('/hayvan_ekle');
-                              },
-                              theme,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildQuickActionCard(
-                              'Süt Ölçümü',
-                              Icons.water_drop,
-                              theme.colorScheme.secondary,
-                              () {
-                                Get.toNamed('/sut_olcum');
-                              },
-                              theme,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                AnimationConfiguration.staggeredList(
-                  position: 1,
-                  duration: const Duration(milliseconds: 375),
-                  child: SlideAnimation(
-                    horizontalOffset: 50.0,
-                    child: FadeInAnimation(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _buildQuickActionCard(
-                              'Aşı Kaydı',
-                              Icons.medical_services,
-                              Colors.orange,
-                              () {
-                                Get.toNamed('/asi_yonetimi');
-                              },
-                              theme,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildQuickActionCard(
-                              'Muayene',
-                              Icons.local_hospital,
-                              Colors.red,
-                              () {
-                                Get.toNamed('/muayene');
-                              },
-                              theme,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionCard(
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-    ThemeData theme,
-  ) {
-    return Material(
-      color: theme.cardColor,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        splashColor: color.withOpacity(0.1),
-        highlightColor: color.withOpacity(0.05),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.1), width: 2),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: theme.textTheme.labelLarge,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavBar(ThemeData theme) {
-    return BottomAppBar(
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      color: theme.bottomAppBarTheme.color,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildBottomNavItem(Icons.home, 'Ana Sayfa', 0, theme),
-          _buildBottomNavItem(Icons.calendar_today, 'Takvim', 1, theme),
-          const SizedBox(width: 48),
-          _buildBottomNavItem(Icons.bar_chart, 'İstatistik', 2, theme),
-          _buildBottomNavItem(Icons.settings, 'Ayarlar', 3, theme),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem(
-      IconData icon, String label, int index, ThemeData theme) {
-    final isSelected = _selectedIndex == index;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        
-        // Navigate to the appropriate screen based on the index
-        if (index == 1) { // Takvim
-          Get.toNamed('/calendar');
-        } else if (index == 2) { // İstatistik
-          Get.toNamed('/statistics');
-        } else if (index == 3) { // Ayarlar
-          Get.toNamed('/settings');
-        }
+  // Get module data
+  List<Map<String, dynamic>> _getModules() {
+    return [
+      {
+        'title': 'Hayvan Bilgileri',
+        'subtitle': 'Bilgileri düzenle ve yönet',
+        'icon': Icons.pets,
+        'color': Colors.green,
+        'onTap': () => Get.toNamed('/hayvan_listesi'),
+        'isUnderDevelopment': false,
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.6)),
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.6)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingActionButton(ThemeData theme) {
-    return FloatingActionButton(
-      backgroundColor: theme.colorScheme.secondary,
-      foregroundColor: theme.colorScheme.onSecondary,
-      elevation: 4,
-      child: const Icon(Icons.add),
-      onPressed: () {
-        _showQuickActionMenu(context);
+      {
+        'title': 'Süt Üretimi',
+        'subtitle': 'Süt ölçümlerini kaydet ve takip et',
+        'icon': Icons.water_drop,
+        'color': Colors.blue,
+        'onTap': () => Get.toNamed('/sut_olcum'),
+        'isUnderDevelopment': false,
       },
-    );
+      {
+        'title': 'Sağlık Yönetimi',
+        'subtitle': 'Aşı ve tedavi kayıtları',
+        'icon': Icons.medical_services,
+        'color': Colors.red,
+        'onTap': () => Get.toNamed('/asi_yonetimi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Tartım Modülü',
+        'subtitle': 'Bluetooth tartım ve ağırlık takibi',
+        'icon': Icons.monitor_weight,
+        'color': Colors.orange,
+        'onTap': () => Get.toNamed('/auto_weight'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Raporlar',
+        'subtitle': 'Verilerin analizi ve raporlar',
+        'icon': Icons.bar_chart,
+        'color': Colors.teal,
+        'onTap': () => Get.toNamed('/raporlar'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Yem Yönetimi',
+        'subtitle': 'Stok ve tüketim takibi',
+        'icon': Icons.grass,
+        'color': Colors.lightGreen,
+        'onTap': () => Get.toNamed('/yem_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Su Tüketimi',
+        'subtitle': 'Su tüketimini takip et',
+        'icon': Icons.water,
+        'color': Colors.blue.shade300,
+        'onTap': () => Get.toNamed('/su_tuketimi_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Rasyon Hesaplama',
+        'subtitle': 'Yem rasyonu hesapla ve planla',
+        'icon': Icons.calculate,
+        'color': Colors.indigo,
+        'onTap': () => Get.toNamed('/rasyon_hesaplama_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Gelir-Gider',
+        'subtitle': 'Finansal durumu takip et',
+        'icon': Icons.account_balance_wallet,
+        'color': Colors.purple,
+        'onTap': () => Get.toNamed('/gelir_gider_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Finansal Özet',
+        'subtitle': 'Gelir-gider raporu ve bütçe',
+        'icon': Icons.pie_chart,
+        'color': Colors.deepPurple,
+        'onTap': () => Get.toNamed('/finansal_ozet_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Üreme Takibi',
+        'subtitle': 'Dönem ve doğum takibi',
+        'icon': Icons.calendar_month,
+        'color': Colors.pink,
+        'onTap': () => Get.toNamed('/ureme_takibi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Konum Yönetimi',
+        'subtitle': 'Hayvan konumlarını takip et',
+        'icon': Icons.location_on,
+        'color': Colors.amber,
+        'onTap': () => Get.toNamed('/konum_yonetim_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Sayım Modülü',
+        'subtitle': 'Hayvan envanteri ve sayım',
+        'icon': Icons.format_list_numbered,
+        'color': Colors.brown,
+        'onTap': () => Get.toNamed('/sayim_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Otomatik Ayırma',
+        'subtitle': 'Hayvanları otomatik kategorize et',
+        'icon': Icons.sort,
+        'color': Colors.cyan,
+        'onTap': () => Get.toNamed('/otomatik_ayirma_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Hastalık Takibi',
+        'subtitle': 'Hastalık kayıtları ve tedavi',
+        'icon': Icons.healing,
+        'color': Colors.red.shade700,
+        'onTap': () => Get.toNamed('/hastalik_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+      {
+        'title': 'Muayene Yönetimi',
+        'subtitle': 'Veteriner muayene kayıtları',
+        'icon': Icons.health_and_safety,
+        'color': Colors.green.shade700,
+        'onTap': () => Get.toNamed('/muayene_sayfasi'),
+        'isUnderDevelopment': false,
+      },
+    ];
   }
 
-  void _showQuickActionMenu(BuildContext context) {
-    final theme = Theme.of(context);
-
-    showModalBottomSheet(
+  void _showSyncDialog(BuildContext context) {
+    showDialog(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: theme.cardColor,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Hızlı İşlemler',
-              style: theme.textTheme.titleLarge,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Veri Senkronizasyonu'),
+          content: Text(
+            'Verileri sunucu ile senkronize etmek için internet bağlantısı gereklidir. ' +
+                'Senkronizasyon işlemi başlatılsın mı?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('İptal'),
             ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _buildQuickActionItem(
-                  'Hayvan Ekle',
-                  Icons.pets,
-                  theme.colorScheme.primary,
-                  () {
-                    Get.toNamed('/hayvan_ekle');
-                    Navigator.pop(context); // Close bottom sheet
-                  },
-                  theme,
-                ),
-                _buildQuickActionItem(
-                  'Süt Ölçümü',
-                  Icons.water_drop,
-                  theme.colorScheme.secondary,
-                  () {
-                    Get.toNamed('/sut_olcum');
-                    Navigator.pop(context); // Close bottom sheet
-                  },
-                  theme,
-                ),
-                _buildQuickActionItem(
-                  'Aşı Kaydı',
-                  Icons.medical_services,
-                  Colors.orange,
-                  () {
-                    Get.toNamed('/asi_yonetimi');
-                    Navigator.pop(context); // Close bottom sheet
-                  },
-                  theme,
-                ),
-                _buildQuickActionItem(
-                  'Muayene',
-                  Icons.local_hospital,
-                  Colors.red,
-                  () {
-                    Get.toNamed('/muayene');
-                    Navigator.pop(context); // Close bottom sheet
-                  },
-                  theme,
-                ),
-              ],
+            ElevatedButton(
+              onPressed: _connectivityService.isConnected
+                  ? () {
+                      Navigator.of(context).pop();
+                      _syncData();
+                    }
+                  : null,
+              child: Text('Senkronize Et'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Future<void> _syncData() async {
+    try {
+      final dataService = Get.find<DataService>();
+      final result = await dataService.syncDataWithSupabase();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result
+                ? 'Veriler başarıyla senkronize edildi.'
+                : 'Veri senkronizasyonunda sorun oluştu.',
+          ),
+          backgroundColor: result ? Colors.green : Colors.red,
         ),
-      ),
-    );
+      );
+
+      if (result) {
+        // Refresh data after successful sync
+        _fetchData();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Senkronizasyon hatası: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
-
-  Widget _buildQuickActionItem(
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-    ThemeData theme,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: theme.textTheme.labelMedium,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showModuleUnderDevelopment(String moduleName) {
-    Get.snackbar(
-      'Modül Geliştirme Aşamasında',
-      '$moduleName modülü şu anda geliştirme aşamasındadır.',
-      backgroundColor: Colors.orange.withOpacity(0.8),
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 3),
-    );
-  }
-}
-
-class ModuleItem {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  ModuleItem({
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-}
-
-class ChartData {
-  final String month;
-  final double value;
-
-  ChartData(this.month, this.value);
-}
-
-class ModuleCategory {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final List<ModuleItem> modules;
-
-  ModuleCategory({
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.modules,
-  });
 }

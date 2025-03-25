@@ -1,3 +1,19 @@
+/*
+ * HomePage.dart
+ * 
+ * Ana sayfa widget'ı. Çiftlik yönetim sisteminin merkezi kontrol panelini içerir.
+ * Süt üretimi, hayvan takibi, sağlık yönetimi gibi temel modüllere hızlı erişim sağlar.
+ * Ayrıca günlük istatistikler, grafikler ve yaklaşan etkinlikleri görüntüler.
+ * 
+ * Özellikler:
+ * - Modüler yapı ile kolay gezinme
+ * - Gerçek zamanlı istatistikler
+ * - Grafiksel veri görselleştirme
+ * - Hızlı erişim menüsü
+ * - Bildirim yönetimi
+ */
+
+// Ana sayf
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';

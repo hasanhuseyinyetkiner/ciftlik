@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../BildirimSayfasi/NotificationPage.dart';
 import '../KullaniciSayfasi/UsersPage.dart';
+import '../widgets/sync_button.dart';
+import '../services/data_service.dart';
 import 'DrawerController.dart';
 
 class DrawerMenu extends StatelessWidget {
@@ -112,6 +114,80 @@ class DrawerMenu extends StatelessWidget {
                   },
                 ),
               ],
+            ),
+          ),
+
+          // Logout Button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Card(
+              elevation: 0,
+              color: Colors.green.shade50,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: Icon(Icons.sync, color: Colors.green.shade700),
+                title: Text(
+                  'Verileri Senkronize Et',
+                  style: TextStyle(
+                    color: Colors.green.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onTap: () async {
+                  Get.back(); // Close drawer
+                  final DataService dataService = Get.find<DataService>();
+
+                  if (!dataService.isUsingSupabase) {
+                    Get.snackbar(
+                      'Senkronizasyon Hatası',
+                      'Çevrimdışı modda senkronizasyon yapılamaz.',
+                      backgroundColor: Colors.red.withOpacity(0.7),
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                    return;
+                  }
+
+                  Get.dialog(
+                    AlertDialog(
+                      title: Text('Senkronizasyon'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Center(child: CircularProgressIndicator()),
+                          SizedBox(height: 20),
+                          Text('Veriler Supabase ile senkronize ediliyor...')
+                        ],
+                      ),
+                    ),
+                    barrierDismissible: false,
+                  );
+
+                  final success = await dataService.syncDataWithSupabase();
+
+                  Get.back(); // Close dialog
+
+                  if (success) {
+                    Get.snackbar(
+                      'Başarılı',
+                      'Veriler başarıyla senkronize edildi.',
+                      backgroundColor: Colors.green.withOpacity(0.7),
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  } else {
+                    Get.snackbar(
+                      'Hata',
+                      'Senkronizasyon sırasında bir hata oluştu.',
+                      backgroundColor: Colors.orange.withOpacity(0.7),
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  }
+                },
+              ),
             ),
           ),
 

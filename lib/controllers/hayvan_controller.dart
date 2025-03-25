@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../models/hayvan_model.dart';
 import 'base_controller.dart';
 
-class HayvanController extends BaseController<Hayvan> {
+class HayvanListController extends BaseController<Hayvan> {
   // Text controllers for form fields
   final kupeNoController = TextEditingController();
   final rfidTagController = TextEditingController();
@@ -25,6 +25,9 @@ class HayvanController extends BaseController<Hayvan> {
   // Search and filter values
   final searchQuery = ''.obs;
   final filterValue = Rx<String?>(null);
+
+  // Filter options
+  List<String?> get filterOptions => [null, 'Aktif', 'Pasif'];
 
   @override
   void onInit() {
@@ -273,5 +276,4 @@ class HayvanController extends BaseController<Hayvan> {
       ['Yüksek', 'Orta', 'Düşük', 'Bilinmiyor'];
   List<String> get sahiplikDurumuOptions =>
       ['Mülk', 'Kiralık', 'Ortak', 'Emanet'];
-  List<String> get filterOptions => ['Aktif', 'Pasif'];
 }

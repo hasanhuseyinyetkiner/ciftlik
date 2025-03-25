@@ -1,66 +1,205 @@
 import 'package:postgres/postgres.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../database/database_config.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 class DatabaseService {
-  PostgreSQLConnection? _connection;
   final DatabaseConfig _dbConfig = DatabaseConfig();
   bool _isConnected = false;
   int _maxRetries = 3;
-  int _retryDelaySeconds = 2;
+  int _retryDelaySeconds = 1; // Reduced from 2 seconds
+  static Database? _database;
+  bool _isOfflineMode = false;
+
+  // Simple cache implementation
+  final Map<String, _CacheEntry> _queryCache = {};
+  final Duration _cacheDuration = Duration(minutes: 5);
 
   bool get isConnected => _isConnected;
 
+  // Get database instance
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  // Initialize database
+  Future<Database> _initDatabase() async {
+    final databasesPath = await getDatabasesPath();
+    final path = join(databasesPath, 'ciftlik_yonetim.db');
+
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDatabase,
+      onUpgrade: _upgradeDatabase,
+    );
+  }
+
+  // Create database tables
+  Future<void> _createDatabase(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE hayvanlar (
+        id TEXT PRIMARY KEY,
+        kupe_no TEXT,
+        tur TEXT,
+        irk TEXT,
+        cinsiyet TEXT,
+        dogum_tarihi TEXT,
+        anne_kupe_no TEXT,
+        baba_kupe_no TEXT,
+        chip_no TEXT,
+        rfid TEXT,
+        ciftlik_kupe TEXT,
+        ciftlik_kupe_rengi TEXT,
+        ulusal_kupe TEXT,
+        ulusal_kupe_rengi TEXT,
+        agirlik REAL,
+        durum TEXT,
+        gebelik_durumu INTEGER,
+        damizlik_durumu INTEGER,
+        damizlik_puan INTEGER,
+        tip_adi TEXT,
+        suru_adi TEXT,
+        padok_adi TEXT,
+        dogum_numarasi TEXT,
+        kardes_sayisi INTEGER,
+        kuzu_sayisi INTEGER,
+        edinme_tarihi TEXT,
+        edinme_yontemi TEXT,
+        son_tohumlanma_tarihi TEXT,
+        tahmini_dogum_tarihi TEXT,
+        notlar TEXT,
+        ek_bilgi TEXT,
+        aktif INTEGER,
+        saglik_durumu TEXT,
+        gunluk_sut_uretimi REAL,
+        canli_agirlik REAL,
+        kuruya_ayirma_tarihi TEXT,
+        yedi_gunluk_canli_agirlik_ortalamasi REAL,
+        onbes_gunluk_canli_agirlik_ortalamasi REAL,
+        otuz_gunluk_canli_agirlik_ortalamasi REAL,
+        gunluk_canli_agirlik_artisi REAL,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE hayvan_tartimlar (
+        id TEXT PRIMARY KEY,
+        hayvan_id TEXT,
+        tarih TEXT,
+        agirlik REAL,
+        birim TEXT,
+        notlar TEXT,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (hayvan_id) REFERENCES hayvanlar (id)
+      )
+    ''');
+
+    // Add other necessary tables...
+  }
+
+  // Upgrade database
+  Future<void> _upgradeDatabase(
+      Database db, int oldVersion, int newVersion) async {
+    // Handle database upgrades here
+  }
+
+  // Initialize database service
   Future<void> init() async {
-    int retryCount = 0;
-    while (retryCount < _maxRetries) {
-      try {
-        _connection = await _dbConfig.connection;
-        if (_connection != null) {
-          _isConnected = true;
-          print('Database connection established successfully');
-          return;
-        } else {
-          // Connection is null, likely in offline mode
-          print('Database connection is null, operating in offline mode');
-          _isConnected = false;
-          return;
-        }
-      } catch (e) {
-        retryCount++;
-        print('Database connection attempt $retryCount failed: $e');
-        if (retryCount < _maxRetries) {
-          print('Retrying in $_retryDelaySeconds seconds...');
-          await Future.delayed(Duration(seconds: _retryDelaySeconds));
-        }
-      }
+    await database;
+    _isConnected = true;
+  }
+
+  // Set offline mode
+  void setOfflineMode(bool value) {
+    _isOfflineMode = value;
+    _isConnected = !value;
+  }
+
+  // Check database connection
+  Future<bool> checkConnection() async {
+    try {
+      final db = await database;
+      await db.rawQuery('SELECT 1');
+      _isConnected = true;
+      return true;
+    } catch (e) {
+      print('Database connection error: $e');
+      _isConnected = false;
+      return false;
     }
-    _isConnected = false;
-    print(
-        'Database connection failed after $_maxRetries attempts. Running in offline mode.');
   }
 
   Future<List<Map<String, dynamic>>> query(
     String sql, {
     Map<String, dynamic>? substitutionValues,
+    bool useCache = true,
+    Duration? cacheDuration,
   }) async {
-    if (!_isConnected || _connection == null) {
+    if (!_isConnected) {
       print('Warning: Database is offline, returning empty result for query');
       return [];
     }
 
+    // Create a cache key from the query and parameters
+    final cacheKey = _createCacheKey(sql, substitutionValues);
+
+    // Check cache first if enabled
+    if (useCache && _queryCache.containsKey(cacheKey)) {
+      final cacheEntry = _queryCache[cacheKey]!;
+      if (!cacheEntry.isExpired()) {
+        print('Returning cached result for query');
+        return cacheEntry.data;
+      } else {
+        // Remove expired entry
+        _queryCache.remove(cacheKey);
+      }
+    }
+
+    PostgreSQLConnection? connection;
     try {
-      final results = await _connection!.mappedResultsQuery(
+      connection = await _dbConfig.connection;
+      if (connection == null) {
+        print(
+            'Warning: Could not get database connection, returning empty result');
+        return [];
+      }
+
+      final results = await connection.mappedResultsQuery(
         sql,
         substitutionValues: substitutionValues,
       );
-      return results.map((r) => r.values.first).toList();
+
+      final mappedResults = results.map((r) => r.values.first).toList();
+
+      // Cache the result if caching is enabled
+      if (useCache) {
+        _queryCache[cacheKey] = _CacheEntry(
+          mappedResults,
+          cacheDuration ?? _cacheDuration,
+        );
+      }
+
+      return mappedResults;
     } catch (e) {
       print('Error executing query: $e');
       if (e is PostgreSQLException) {
         print('PostgreSQL error code: ${e.code}');
       }
       return [];
+    } finally {
+      // Always release the connection back to the pool
+      if (connection != null) {
+        _dbConfig.releaseConnection(connection);
+      }
     }
   }
 
@@ -68,13 +207,24 @@ class DatabaseService {
     String sql, {
     Map<String, dynamic>? substitutionValues,
   }) async {
-    if (!_isConnected || _connection == null) {
+    if (!_isConnected) {
       print('Warning: Database is offline, skipping execute operation');
       return false;
     }
 
+    PostgreSQLConnection? connection;
     try {
-      await _connection!.execute(sql, substitutionValues: substitutionValues);
+      connection = await _dbConfig.connection;
+      if (connection == null) {
+        print('Warning: Could not get database connection');
+        return false;
+      }
+
+      await connection.execute(sql, substitutionValues: substitutionValues);
+
+      // Clear cache after write operations
+      _clearRelatedCacheEntries(sql);
+
       return true;
     } catch (e) {
       print('Error executing command: $e');
@@ -82,51 +232,142 @@ class DatabaseService {
         print('PostgreSQL error code: ${e.code}');
       }
       return false;
+    } finally {
+      // Always release the connection back to the pool
+      if (connection != null) {
+        _dbConfig.releaseConnection(connection);
+      }
     }
   }
 
   Future<T?> transaction<T>(
     Future<T> Function(PostgreSQLConnection) operation,
   ) async {
-    if (!_isConnected || _connection == null) {
+    if (!_isConnected) {
       print('Warning: Database is offline, skipping transaction');
       return null;
     }
 
+    PostgreSQLConnection? connection;
     try {
-      return await _connection!.transaction((ctx) async {
-        return await operation(_connection!);
+      connection = await _dbConfig.connection;
+      if (connection == null) {
+        print('Warning: Could not get database connection');
+        return null;
+      }
+
+      final result = await connection.transaction((ctx) async {
+        return await operation(connection!);
       });
+
+      // Clear all cache after transaction as we don't know what was modified
+      _clearAllCache();
+
+      return result;
     } catch (e) {
       print('Error in transaction: $e');
       if (e is PostgreSQLException) {
         print('PostgreSQL error code: ${e.code}');
       }
       return null;
+    } finally {
+      // Always release the connection back to the pool
+      if (connection != null) {
+        _dbConfig.releaseConnection(connection);
+      }
     }
   }
 
   Future<void> close() async {
-    if (_connection != null && _isConnected) {
-      try {
-        await _connection!.close();
-        _isConnected = false;
-        print('Database connection closed successfully');
-      } catch (e) {
-        print('Error closing database connection: $e');
-      }
+    try {
+      await _dbConfig.closeAllConnections();
+      _isConnected = false;
+      print('Database connections closed successfully');
+    } catch (e) {
+      print('Error closing database connections: $e');
     }
   }
 
   Future<bool> reconnect() async {
     print('Attempting to reconnect to database...');
     try {
-      await close();
+      _isConnected = false;
       await init();
       return _isConnected;
     } catch (e) {
       print('Error reconnecting to database: $e');
       return false;
+    }
+  }
+
+  // Cache management methods
+  String _createCacheKey(String sql, Map<String, dynamic>? params) {
+    return '$sql:${params != null ? jsonEncode(params) : ""}';
+  }
+
+  void _clearRelatedCacheEntries(String sql) {
+    // Simple table detection - this can be improved
+    final tablePattern =
+        RegExp(r'(?:FROM|INTO|UPDATE|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)');
+    final matches = tablePattern.allMatches(sql);
+
+    if (matches.isEmpty) {
+      // If we can't determine tables, clear all cache to be safe
+      _clearAllCache();
+      return;
+    }
+
+    // Get table names
+    final tableNames = matches
+        .map((m) => m.group(1)?.toLowerCase())
+        .where((t) => t != null)
+        .toSet();
+
+    // Remove cache entries related to these tables
+    _queryCache.removeWhere((key, _) {
+      return tableNames.any((table) => key.toLowerCase().contains(table!));
+    });
+  }
+
+  void _clearAllCache() {
+    _queryCache.clear();
+    print('All query cache cleared');
+  }
+
+  // Persistent cache methods using SharedPreferences for frequently accessed data
+  Future<void> saveToPersistentCache(String key, dynamic data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonData = jsonEncode(data);
+      await prefs.setString('db_cache_$key', jsonData);
+    } catch (e) {
+      print('Error saving to persistent cache: $e');
+    }
+  }
+
+  Future<dynamic> getFromPersistentCache(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonData = prefs.getString('db_cache_$key');
+      if (jsonData == null) return null;
+      return jsonDecode(jsonData);
+    } catch (e) {
+      print('Error retrieving from persistent cache: $e');
+      return null;
+    }
+  }
+
+  Future<void> clearPersistentCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith('db_cache_')) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (e) {
+      print('Error clearing persistent cache: $e');
     }
   }
 
@@ -138,7 +379,7 @@ class DatabaseService {
     double maxWeight,
   ) async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return [];
       }
 
@@ -194,9 +435,8 @@ class DatabaseService {
 
       sql += ' ORDER BY w.date DESC';
 
-      final results = await _connection!
-          .mappedResultsQuery(sql, substitutionValues: params);
-      return results.map((r) => r.values.first).toList();
+      final results = await query(sql, substitutionValues: params);
+      return results;
     } catch (e) {
       print('Error in getWeightAnalysisData: $e');
       // Return sample data in case of error
@@ -232,15 +472,13 @@ class DatabaseService {
   // Auto Weight Module Database Methods
   Future<String?> getLastConnectedDeviceId() async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return null;
       }
 
       final sql = "SELECT value FROM settings WHERE key = @key";
-      final results = await _connection!.mappedResultsQuery(
-        sql,
-        substitutionValues: {'key': 'last_connected_device'},
-      );
+      final results = await query(sql,
+          substitutionValues: {'key': 'last_connected_device'});
 
       if (results.isEmpty || results.first.values.isEmpty) {
         return null;
@@ -255,7 +493,7 @@ class DatabaseService {
 
   Future<void> saveLastConnectedDeviceId(String deviceId) async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return;
       }
 
@@ -266,11 +504,10 @@ class DatabaseService {
         WHERE key = @key
       ''';
 
-      final updateResult = await _connection!.execute(updateSql,
-          substitutionValues: {
-            'key': 'last_connected_device',
-            'value': deviceId
-          });
+      final updateResult = await execute(updateSql, substitutionValues: {
+        'key': 'last_connected_device',
+        'value': deviceId
+      });
 
       // If no rows were affected, insert a new record
       if (updateResult == 0) {
@@ -279,7 +516,7 @@ class DatabaseService {
           VALUES (@key, @value)
         ''';
 
-        await _connection!.execute(insertSql, substitutionValues: {
+        await execute(insertSql, substitutionValues: {
           'key': 'last_connected_device',
           'value': deviceId
         });
@@ -291,7 +528,7 @@ class DatabaseService {
 
   Future<void> saveWeightRecord(Map<String, dynamic> record) async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return;
       }
 
@@ -302,7 +539,7 @@ class DatabaseService {
         (@weight, @timestamp, @deviceId, @ruleApplied, @category)
       ''';
 
-      await _connection!.execute(sql, substitutionValues: {
+      await execute(sql, substitutionValues: {
         'weight': record['weight'],
         'timestamp': record['timestamp'],
         'deviceId': record['deviceId'],
@@ -316,18 +553,18 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getSeparationRules() async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return _getDefaultSeparationRules();
       }
 
       final sql = "SELECT * FROM separation_rules ORDER BY minWeight";
-      final results = await _connection!.mappedResultsQuery(sql);
+      final results = await query(sql);
 
       if (results.isEmpty) {
         return _getDefaultSeparationRules();
       }
 
-      return results.map((r) => r.values.first).toList();
+      return results;
     } catch (e) {
       print('Error in getSeparationRules: $e');
       return _getDefaultSeparationRules();
@@ -362,12 +599,12 @@ class DatabaseService {
 
   Future<Map<String, dynamic>> getWeightingStats() async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return _getDefaultWeightingStats();
       }
 
       final sql = "SELECT * FROM auto_weight_stats ORDER BY id DESC LIMIT 1";
-      final results = await _connection!.mappedResultsQuery(sql);
+      final results = await query(sql);
 
       if (results.isEmpty || results.first.values.isEmpty) {
         return _getDefaultWeightingStats();
@@ -391,7 +628,7 @@ class DatabaseService {
 
   Future<void> saveWeightingStats(Map<String, Object> stats) async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return;
       }
 
@@ -410,8 +647,7 @@ class DatabaseService {
         WHERE id = (SELECT id FROM auto_weight_stats ORDER BY id DESC LIMIT 1)
       ''';
 
-      final updateResult =
-          await _connection!.execute(updateSql, substitutionValues: data);
+      final updateResult = await execute(updateSql, substitutionValues: data);
 
       // If no rows were affected, insert a new record
       if (updateResult == 0) {
@@ -422,7 +658,7 @@ class DatabaseService {
           (@totalWeighings, @errorRate, @lastSync)
         ''';
 
-        await _connection!.execute(insertSql, substitutionValues: data);
+        await execute(insertSql, substitutionValues: data);
       }
     } catch (e) {
       print('Error in saveWeightingStats: $e');
@@ -432,12 +668,12 @@ class DatabaseService {
   // Ensure weight module tables are created
   Future<void> createWeightModuleTables() async {
     try {
-      if (!_isConnected || _connection == null) {
+      if (!_isConnected) {
         return;
       }
 
       // Weight Reports table
-      await _connection!.execute('''
+      await execute('''
         CREATE TABLE IF NOT EXISTS weight_reports (
           id SERIAL PRIMARY KEY,
           animal_id INTEGER NOT NULL,
@@ -448,7 +684,7 @@ class DatabaseService {
       ''');
 
       // Auto Weight Records table
-      await _connection!.execute('''
+      await execute('''
         CREATE TABLE IF NOT EXISTS auto_weight_records (
           id SERIAL PRIMARY KEY,
           weight REAL NOT NULL,
@@ -461,7 +697,7 @@ class DatabaseService {
       ''');
 
       // Settings table for device information
-      await _connection!.execute('''
+      await execute('''
         CREATE TABLE IF NOT EXISTS settings (
           key TEXT PRIMARY KEY,
           value TEXT
@@ -469,7 +705,7 @@ class DatabaseService {
       ''');
 
       // Separation rules table
-      await _connection!.execute('''
+      await execute('''
         CREATE TABLE IF NOT EXISTS separation_rules (
           id SERIAL PRIMARY KEY,
           name TEXT NOT NULL,
@@ -480,7 +716,7 @@ class DatabaseService {
       ''');
 
       // Stats table
-      await _connection!.execute('''
+      await execute('''
         CREATE TABLE IF NOT EXISTS auto_weight_stats (
           id SERIAL PRIMARY KEY,
           totalWeighings INTEGER NOT NULL,
@@ -493,73 +729,60 @@ class DatabaseService {
     }
   }
 
-  // Check connection status
-  Future<bool> checkConnection() async {
-    if (_isConnected && _connection != null) {
-      try {
-        // Test query to verify connection
-        await _connection!.query('SELECT 1');
-        return true;
-      } catch (e) {
-        _isConnected = false;
-        return false;
-      }
-    }
-    return false;
-  }
-
-  // Set offline mode
-  void setOfflineMode(bool value) {
-    _dbConfig.setOfflineMode(value);
-    _isConnected = !value;
-  }
-
   // HAYVAN NOT İŞLEMLERİ
   Future<List<Map<String, dynamic>>> getHayvanNotlari(int hayvanId) async {
-    final sql = '''
-      SELECT * FROM hayvan_not 
-      WHERE hayvan_id = @hayvan_id
-      ORDER BY created_at DESC
-    ''';
-
-    return await query(sql, substitutionValues: {'hayvan_id': hayvanId});
+    return await query(
+      'SELECT * FROM hayvan_not WHERE hayvan_id = ? ORDER BY created_at DESC',
+      substitutionValues: {'hayvan_id': hayvanId},
+    );
   }
 
   Future<bool> addHayvanNot(Map<String, dynamic> data) async {
-    final sql = '''
-      INSERT INTO hayvan_not (
-        hayvan_id, not_metni, kullanici_id, onemli_mi
-      ) VALUES (
-        @hayvan_id, @not_metni, @kullanici_id, @onemli_mi
-      )
-    ''';
-
-    return await execute(sql, substitutionValues: {
-      'hayvan_id': data['hayvan_id'],
-      'not_metni': data['not_metni'],
-      'kullanici_id': data['kullanici_id'],
-      'onemli_mi': data['onemli_mi'] ?? false,
-    });
+    try {
+      await execute(
+        'INSERT INTO hayvan_not (hayvan_id, not_metni, kullanici_id, onemli_mi) VALUES (?, ?, ?, ?)',
+        substitutionValues: {
+          'hayvan_id': data['hayvan_id'],
+          'not_metni': data['not_metni'],
+          'kullanici_id': data['kullanici_id'],
+          'onemli_mi': data['onemli_mi'] ?? false,
+        },
+      );
+      return true;
+    } catch (e) {
+      print('Error adding hayvan not: $e');
+      return false;
+    }
   }
 
   Future<bool> updateHayvanNot(int notId, Map<String, dynamic> data) async {
-    final sql = '''
-      UPDATE hayvan_not SET
-        not_metni = @not_metni,
-        onemli_mi = @onemli_mi
-      WHERE not_id = @not_id
-    ''';
-
-    return await execute(sql, substitutionValues: {
-      'not_id': notId,
-      'not_metni': data['not_metni'],
-      'onemli_mi': data['onemli_mi'] ?? false,
-    });
+    try {
+      await execute(
+        'UPDATE hayvan_not SET not_metni = ?, onemli_mi = ? WHERE not_id = ?',
+        substitutionValues: {
+          'not_metni': data['not_metni'],
+          'onemli_mi': data['onemli_mi'] ?? false,
+          'not_id': notId,
+        },
+      );
+      return true;
+    } catch (e) {
+      print('Error updating hayvan not: $e');
+      return false;
+    }
   }
 
   Future<bool> deleteHayvanNot(int notId) async {
-    final sql = 'DELETE FROM hayvan_not WHERE not_id = @not_id';
-    return await execute(sql, substitutionValues: {'not_id': notId});
+    try {
+      await execute(
+        'DELETE FROM hayvan_not WHERE not_id = ?',
+        substitutionValues: {'not_id': notId},
+      );
+      return true;
+    } catch (e) {
+      print('Error deleting hayvan not: $e');
+      return false;
+    }
   }
 
   // KULLANICI AYARLARI İŞLEMLERİ
@@ -800,5 +1023,123 @@ class DatabaseService {
       'aktivite_id': aktiviteId,
       'bitis_zamani': bitisTarihi.toIso8601String(),
     });
+  }
+
+  // Toplam tartım sayısını getirir
+  Future<int> getWeightMeasurementCount() async {
+    try {
+      final result =
+          await query('SELECT COUNT(*) as count FROM weight_measurements');
+      return result.first['count'] as int;
+    } catch (e) {
+      print('Tartım sayma hatası: $e');
+      return 0;
+    }
+  }
+
+  // Stabil tartım sayısını getirir
+  Future<int> getStableWeightMeasurementCount() async {
+    try {
+      final result = await query(
+          'SELECT COUNT(*) as count FROM weight_measurements WHERE is_stable = 1');
+      return result.first['count'] as int;
+    } catch (e) {
+      print('Stabil tartım sayma hatası: $e');
+      return 0;
+    }
+  }
+
+  // Ortalama ağırlığı getirir
+  Future<double?> getAverageWeight() async {
+    try {
+      final result = await query(
+          'SELECT AVG(weight) as average FROM weight_measurements WHERE is_stable = 1');
+      final average = result.first['average'];
+      if (average == null) return null;
+      return average is int ? average.toDouble() : average as double;
+    } catch (e) {
+      print('Ortalama ağırlık hesaplama hatası: $e');
+      return null;
+    }
+  }
+
+  // Veritabanındaki tablo isimlerini döndürür
+  Future<List<String>> getTableNames() async {
+    try {
+      final result = await query(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'android_%'");
+      return result.map((row) => row['name'] as String).toList();
+    } catch (e) {
+      print('Tablo isimleri getirme hatası: $e');
+      return ['hayvanlar', 'weight_measurements', 'health_records', 'tasks'];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> rawQuery(String sql,
+      [List<dynamic>? arguments]) async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery(sql, arguments);
+      return result.map((row) => Map<String, dynamic>.from(row)).toList();
+    } catch (e) {
+      print('Database query error: $e');
+      return [];
+    }
+  }
+
+  Future<void> rawExecute(String sql, [List<dynamic>? arguments]) async {
+    try {
+      final db = await database;
+      await db.execute(sql, arguments);
+    } catch (e) {
+      print('Database execute error: $e');
+      throw e;
+    }
+  }
+
+  Future<int> insertRecord(String tableName, Map<String, dynamic> data) async {
+    try {
+      final db = await database;
+      return await db.insert(tableName, data);
+    } catch (e) {
+      print('Database insert error: $e');
+      throw e;
+    }
+  }
+
+  Future<int> updateRecord(String tableName, Map<String, dynamic> data,
+      {String? where, List<dynamic>? whereArgs}) async {
+    try {
+      final db = await database;
+      return await db.update(tableName, data,
+          where: where, whereArgs: whereArgs);
+    } catch (e) {
+      print('Database update error: $e');
+      throw e;
+    }
+  }
+
+  Future<int> deleteRecord(String tableName,
+      {String? where, List<dynamic>? whereArgs}) async {
+    try {
+      final db = await database;
+      return await db.delete(tableName, where: where, whereArgs: whereArgs);
+    } catch (e) {
+      print('Database delete error: $e');
+      throw e;
+    }
+  }
+}
+
+// Cache entry class for in-memory caching
+class _CacheEntry {
+  final List<Map<String, dynamic>> data;
+  final DateTime expiryTime;
+
+  _CacheEntry(this.data, Duration duration)
+      : expiryTime = DateTime.now().add(duration);
+
+  bool isExpired() {
+    return DateTime.now().isAfter(expiryTime);
   }
 }

@@ -5,7 +5,7 @@ import '../models/hayvan_model.dart';
 import '../widgets/forms/form_builder.dart';
 
 class HayvanFormPage extends StatelessWidget {
-  final HayvanController controller = Get.find<HayvanController>();
+  final HayvanListController controller = Get.find<HayvanListController>();
   final Hayvan? hayvan;
   final bool isEditing;
 
@@ -61,78 +61,88 @@ class HayvanFormPage extends StatelessWidget {
 
               // Breed & Gender Section
               FormBuilder.buildSectionTitle('Irk ve Cinsiyet'),
-              Obx(() => FormBuilder.buildDropdown<String>(
-                    label: 'Irk',
-                    value: controller.irkController.text.isEmpty
-                        ? null
-                        : controller.irkController.text,
-                    items: controller.irkOptions
-                        .map((option) => DropdownMenuItem(
-                            value: option, child: Text(option)))
-                        .toList(),
-                    onChanged: (value) {
-                      controller.irkController.text = value ?? '';
-                    },
-                    prefixIcon: Icons.category,
-                  )),
-              Obx(() => FormBuilder.buildDropdown<String>(
-                    label: 'Cinsiyet',
-                    value: controller.cinsiyet.value,
-                    items: controller.cinsiyetOptions
-                        .map((option) => DropdownMenuItem(
-                            value: option, child: Text(option)))
-                        .toList(),
-                    onChanged: (value) => controller.cinsiyet.value = value,
-                    prefixIcon: Icons.male,
-                  )),
+              GetX<HayvanListController>(
+                builder: (ctrl) => FormBuilder.buildDropdown<String>(
+                  label: 'Irk',
+                  value: ctrl.irkController.text.isEmpty
+                      ? null
+                      : ctrl.irkController.text,
+                  items: ctrl.irkOptions
+                      .map((option) =>
+                          DropdownMenuItem(value: option, child: Text(option)))
+                      .toList(),
+                  onChanged: (value) {
+                    ctrl.irkController.text = value ?? '';
+                  },
+                  prefixIcon: Icons.category,
+                ),
+              ),
+              GetX<HayvanListController>(
+                builder: (ctrl) => FormBuilder.buildDropdown<String>(
+                  label: 'Cinsiyet',
+                  value: ctrl.cinsiyet.value,
+                  items: ctrl.cinsiyetOptions
+                      .map((option) =>
+                          DropdownMenuItem(value: option, child: Text(option)))
+                      .toList(),
+                  onChanged: (value) => ctrl.cinsiyet.value = value,
+                  prefixIcon: Icons.male,
+                ),
+              ),
 
               // Birth & Pedigree Section
               FormBuilder.buildSectionTitle('Doğum ve Soy Bilgileri'),
-              Obx(() => FormBuilder.buildDatePicker(
-                    label: 'Doğum Tarihi',
-                    selectedDate: controller.dogumTarihi.value,
-                    onDateSelected: (date) =>
-                        controller.dogumTarihi.value = date,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
-                  )),
+              GetX<HayvanListController>(
+                builder: (ctrl) => FormBuilder.buildDatePicker(
+                  label: 'Doğum Tarihi',
+                  selectedDate: ctrl.dogumTarihi.value,
+                  onDateSelected: (date) => ctrl.dogumTarihi.value = date,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                ),
+              ),
 
               // Additional Information
               FormBuilder.buildSectionTitle('Ek Bilgiler'),
-              Obx(() => FormBuilder.buildDropdown<String>(
-                    label: 'Damızlık Kalite',
-                    value: controller.damizlikKalite.value,
-                    items: controller.damizlikKaliteOptions
-                        .map((option) => DropdownMenuItem(
-                            value: option, child: Text(option)))
-                        .toList(),
-                    onChanged: (value) =>
-                        controller.damizlikKalite.value = value,
-                  )),
-              Obx(() => FormBuilder.buildDropdown<String>(
-                    label: 'Sahiplik Durumu',
-                    value: controller.sahiplikDurumu.value,
-                    items: controller.sahiplikDurumuOptions
-                        .map((option) => DropdownMenuItem(
-                            value: option, child: Text(option)))
-                        .toList(),
-                    onChanged: (value) =>
-                        controller.sahiplikDurumu.value = value,
-                  )),
-              Obx(() => FormBuilder.buildCheckbox(
-                    label: 'Hayvan Aktif',
-                    value: controller.aktifMi.value,
-                    onChanged: (value) =>
-                        controller.aktifMi.value = value ?? true,
-                    helperText: 'Hayvan çiftlikte aktif olarak bulunuyor mu?',
-                  )),
+              GetX<HayvanListController>(
+                builder: (ctrl) => FormBuilder.buildDropdown<String>(
+                  label: 'Damızlık Kalite',
+                  value: ctrl.damizlikKalite.value,
+                  items: ctrl.damizlikKaliteOptions
+                      .map((option) =>
+                          DropdownMenuItem(value: option, child: Text(option)))
+                      .toList(),
+                  onChanged: (value) => ctrl.damizlikKalite.value = value,
+                ),
+              ),
+              GetX<HayvanListController>(
+                builder: (ctrl) => FormBuilder.buildDropdown<String>(
+                  label: 'Sahiplik Durumu',
+                  value: ctrl.sahiplikDurumu.value,
+                  items: ctrl.sahiplikDurumuOptions
+                      .map((option) =>
+                          DropdownMenuItem(value: option, child: Text(option)))
+                      .toList(),
+                  onChanged: (value) => ctrl.sahiplikDurumu.value = value,
+                ),
+              ),
+              GetX<HayvanListController>(
+                builder: (ctrl) => FormBuilder.buildCheckbox(
+                  label: 'Hayvan Aktif',
+                  value: ctrl.aktifMi.value,
+                  onChanged: (value) => ctrl.aktifMi.value = value ?? true,
+                  helperText: 'Hayvan çiftlikte aktif olarak bulunuyor mu?',
+                ),
+              ),
 
               // Submit Button
-              Obx(() => FormBuilder.buildSubmitButton(
-                    label: isEditing ? 'Güncelle' : 'Kaydet',
-                    onPressed: _handleSubmit,
-                    isLoading: controller.isLoading.value,
-                  )),
+              GetX<HayvanListController>(
+                builder: (ctrl) => FormBuilder.buildSubmitButton(
+                  label: isEditing ? 'Güncelle' : 'Kaydet',
+                  onPressed: _handleSubmit,
+                  isLoading: ctrl.isLoading.value,
+                ),
+              ),
             ],
           ),
         ),

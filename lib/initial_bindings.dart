@@ -29,6 +29,8 @@ import 'TartimModulu/AutoWeightController.dart';
 import 'AsiYonetimi/AsiUygulamasiController.dart';
 import 'services/data_service.dart';
 import 'services/api_service.dart';
+import 'dart:io';
+import 'adapter.dart'; // Adaptör sınıfını import ediyoruz
 
 /*
 * InitialBindings - Bağımlılık Enjeksiyonu Yapılandırması
@@ -71,12 +73,36 @@ import 'services/api_service.dart';
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
+    // .env dosyasından Supabase kimlik bilgilerini oku
+    Map<String, String> env = {};
+    final envFile = File('.env');
+    if (envFile.existsSync()) {
+      final lines = envFile.readAsLinesSync();
+      for (var line in lines) {
+        if (line.contains('=')) {
+          final parts = line.split('=');
+          if (parts.length >= 2) {
+            env[parts[0]] = parts.sublist(1).join('=');
+          }
+        }
+      }
+    }
+
+    final supabaseUrl =
+        env['SUPABASE_URL'] ?? 'https://wahoyhkhwvetpopnopqa.supabase.co';
+    final supabaseKey = env['SUPABASE_ANON_KEY'] ??
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhaG95aGtod3ZldHBvcG5vcHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NjcwMTksImV4cCI6MjA1ODA0MzAxOX0.fG9eMAdGsFONMVKSIOt8QfkZPRBjrSsoKrxgCbgAbhY';
+
+    // SupabaseAdapter sınıfını Get ile kaydet
+    Get.put(SupabaseAdapter(supabaseUrl: supabaseUrl, supabaseKey: supabaseKey),
+        permanent: true);
+
+    // DataService'i başlat
+    Get.put(DataService(), permanent: true);
+
     // First initialize core services
     final dbService = Get.put(DatabaseService(), permanent: true);
     final apiService = Get.put(ApiService(), permanent: true);
-
-    // Initialize DataService after core services
-    final dataService = Get.put(DataService(), permanent: true);
 
     // Auth related bindings
     Get.lazyPut<AuthService>(() => AuthService());

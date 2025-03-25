@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'WeightController.dart';
+import 'package:intl/intl.dart';
 
 /*
 * AddWeightPage - Tartım Ekleme Sayfası
@@ -54,7 +55,9 @@ import 'WeightController.dart';
 */
 
 class AddWeightPage extends StatefulWidget {
-  const AddWeightPage({Key? key}) : super(key: key);
+  final Map<String, dynamic>? editData;
+
+  const AddWeightPage({Key? key, this.editData}) : super(key: key);
 
   @override
   State<AddWeightPage> createState() => _AddWeightPageState();
@@ -81,6 +84,9 @@ class _AddWeightPageState extends State<AddWeightPage>
   bool _isSaving = false;
   final FocusNode _weightFocusNode = FocusNode();
 
+  // Flag to indicate if we're editing an existing record
+  bool get _isEditing => widget.editData != null;
+
   @override
   void initState() {
     super.initState();
@@ -106,6 +112,26 @@ class _AddWeightPageState extends State<AddWeightPage>
     ));
 
     _animationController.forward();
+
+    // If editing existing record, load data into form
+    if (_isEditing) {
+      _loadEditData();
+    }
+  }
+
+  // Load data from the passed record for editing
+  void _loadEditData() {
+    if (widget.editData != null) {
+      setState(() {
+        _formData['id'] = widget.editData!['id'];
+        _formData['hayvanId'] = widget.editData!['hayvanId'];
+        _formData['hayvanAd'] = widget.editData!['hayvanAd'];
+        _formData['tarih'] = widget.editData!['tarih'];
+        _formData['agirlik'] = widget.editData!['agirlik'];
+        _formData['birim'] = widget.editData!['birim'] ?? 'kg';
+        _formData['notlar'] = widget.editData!['notlar'] ?? '';
+      });
+    }
   }
 
   @override
@@ -119,9 +145,9 @@ class _AddWeightPageState extends State<AddWeightPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Yeni Tartım Kaydı',
-          style: TextStyle(color: Colors.black87),
+        title: Text(
+          _isEditing ? 'Tartım Düzenle' : 'Yeni Tartım Kaydı',
+          style: const TextStyle(color: Colors.black87),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -129,35 +155,43 @@ class _AddWeightPageState extends State<AddWeightPage>
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
           onPressed: () => Get.back(),
         ),
+        actions: [
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _confirmDelete(),
+            ),
+        ],
       ),
       body: SlideTransition(
         position: _slideAnimation,
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: AnimationLimiter(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: AnimationConfiguration.toStaggeredList(
-                  duration: const Duration(milliseconds: 600),
-                  childAnimationBuilder: (widget) => SlideAnimation(
-                    verticalOffset: 50.0,
-                    child: FadeInAnimation(child: widget),
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SafeArea(
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: AnimationConfiguration.toStaggeredList(
+                    duration: const Duration(milliseconds: 600),
+                    childAnimationBuilder: (widget) => SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(child: widget),
+                    ),
+                    children: [
+                      _buildInfoCard(),
+                      const SizedBox(height: 24),
+                      _buildAnimalSelectionCard(),
+                      const SizedBox(height: 24),
+                      _buildWeightInputCard(),
+                      const SizedBox(height: 24),
+                      _buildNotesCard(),
+                      const SizedBox(height: 32),
+                      _buildSubmitButton(),
+                    ],
                   ),
-                  children: [
-                    _buildAnimalDropdown(),
-                    const SizedBox(height: 16),
-                    _buildDatePicker(),
-                    const SizedBox(height: 16),
-                    _buildWeightField(),
-                    const SizedBox(height: 16),
-                    _buildNotesField(),
-                    const SizedBox(height: 24),
-                    _buildBluetoothButton(),
-                    const SizedBox(height: 16),
-                    _buildSubmitButton(),
-                  ],
                 ),
               ),
             ),
@@ -167,330 +201,684 @@ class _AddWeightPageState extends State<AddWeightPage>
     );
   }
 
-  Widget _buildAnimalDropdown() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        color: Colors.white,
+  Widget _buildInfoCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: DropdownButtonFormField<String>(
-        value: _formData['hayvanId'] == '' ? null : _formData['hayvanId'],
-        decoration: InputDecoration(
-          labelText: 'Hayvan Seçin',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Tartım Bilgileri',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Bu sayfada yeni bir tartım kaydı oluşturabilirsiniz. Hayvan seçimi, ağırlık ve notlar gibi gerekli bilgileri girerek hayvanlarınızın gelişimini takip edebilirsiniz.',
+              style: TextStyle(
+                color: Colors.black54,
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
-        items: controller.hayvanlar.map((hayvan) {
-          return DropdownMenuItem<String>(
+      ),
+    );
+  }
+
+  Widget _buildAnimalSelectionCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.pets,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Hayvan Seçimi',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildAnimalDropdown(),
+            const SizedBox(height: 16),
+            _buildDatePicker(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeightInputCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.scale,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Ağırlık Bilgileri',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: _buildWeightInput(),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: _buildUnitDropdown(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: OutlinedButton.icon(
+                onPressed: _connectToBluetoothScale,
+                icon: const Icon(Icons.bluetooth),
+                label: const Text('Bluetooth Tartı Bağla'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                  side: const BorderSide(color: Colors.blue),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotesCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.note_alt,
+                    color: Colors.amber,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Notlar',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: _formData['notlar'] as String,
+              decoration: InputDecoration(
+                hintText: 'Tartım ile ilgili notlarınızı buraya ekleyin',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              maxLines: 3,
+              onSaved: (value) => _formData['notlar'] = value ?? '',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimalDropdown() {
+    return DropdownButtonFormField<String>(
+      value:
+          _formData['hayvanId'] == '' ? null : _formData['hayvanId'] as String?,
+      decoration: InputDecoration(
+        hintText: 'Hayvan Seçin',
+        prefixIcon: const Icon(Icons.search),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      items: [
+        ...controller.hayvanlar.map((hayvan) {
+          return DropdownMenuItem(
             value: hayvan['id'] as String,
-            child: Text(hayvan['ad']),
+            child: Text("${hayvan['ad']} (${hayvan['tur']})"),
           );
         }).toList(),
-        onChanged: (value) {
+      ],
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Lütfen bir hayvan seçin';
+        }
+        return null;
+      },
+      onChanged: (value) {
+        if (value != null) {
           setState(() {
             _formData['hayvanId'] = value;
-            _formData['hayvanAd'] =
-                controller.hayvanlar.firstWhere((h) => h['id'] == value)['ad'];
+            // Set the animal name for display purposes
+            final selectedAnimal = controller.hayvanlar.firstWhere(
+              (hayvan) => hayvan['id'] == value,
+              orElse: () => {'id': '', 'ad': '', 'tur': ''},
+            );
+            _formData['hayvanAd'] = selectedAnimal['ad'] as String;
           });
-        },
-        validator: (value) =>
-            value == null || value.isEmpty ? 'Lütfen bir hayvan seçin' : null,
-      ),
+        }
+      },
+      onSaved: (value) {
+        if (value != null) {
+          _formData['hayvanId'] = value;
+          // Set the animal name again to be safe
+          final selectedAnimal = controller.hayvanlar.firstWhere(
+            (hayvan) => hayvan['id'] == value,
+            orElse: () => {'id': '', 'ad': '', 'tur': ''},
+          );
+          _formData['hayvanAd'] = selectedAnimal['ad'] as String;
+        }
+      },
     );
   }
 
   Widget _buildDatePicker() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+    return InkWell(
+      onTap: () async {
+        final DateTime? picked = await showDatePicker(
+          context: context,
+          initialDate: _formData['tarih'] as DateTime,
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now().add(const Duration(days: 1)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: Colors.red,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) {
+          setState(() {
+            _formData['tarih'] = picked;
+          });
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Tarih',
+          prefixIcon: const Icon(Icons.calendar_today),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+        ),
+        child: Text(
+          DateFormat('dd/MM/yyyy').format(_formData['tarih'] as DateTime),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeightInput() {
+    return TextFormField(
+      initialValue:
+          _formData['agirlik'] == 0.0 ? '' : _formData['agirlik'].toString(),
+      decoration: InputDecoration(
+        labelText: 'Ağırlık',
+        hintText: 'Örn: 450.5',
+        prefixIcon: const Icon(Icons.line_weight),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Lütfen ağırlık değeri girin';
+        }
+        if (double.tryParse(value) == null) {
+          return 'Geçerli bir sayı girin';
+        }
+        if (double.parse(value) <= 0) {
+          return 'Ağırlık 0\'dan büyük olmalıdır';
+        }
+        return null;
+      },
+      onSaved: (value) {
+        if (value != null && value.isNotEmpty) {
+          _formData['agirlik'] = double.parse(value);
+        }
+      },
+      focusNode: _weightFocusNode,
+    );
+  }
+
+  Widget _buildUnitDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _formData['birim'] as String,
+      decoration: InputDecoration(
+        labelText: 'Birim',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      items: const [
+        DropdownMenuItem(
+          value: 'kg',
+          child: Text('kg'),
+        ),
+        DropdownMenuItem(
+          value: 'g',
+          child: Text('g'),
+        ),
+        DropdownMenuItem(
+          value: 'ton',
+          child: Text('ton'),
+        ),
+      ],
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            _formData['birim'] = value;
+          });
+        }
+      },
+      onSaved: (value) {
+        if (value != null) {
+          _formData['birim'] = value;
+        }
+      },
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return ElevatedButton(
+      onPressed: _isSaving ? null : _saveWeight,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        minimumSize: const Size(double.infinity, 50),
+      ),
+      child: _isSaving
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : Text(
+              _isEditing ? 'Kaydet' : 'Tartım Ekle',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+    );
+  }
+
+  // Method to connect to Bluetooth scale
+  void _connectToBluetoothScale() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bluetooth Tartı'),
+        content: const SizedBox(
+          height: 100,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Bluetooth cihazları aranıyor...'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('İptal'),
           ),
         ],
       ),
-      child: InkWell(
-        onTap: () async {
-          final DateTime? picked = await showDatePicker(
-            context: context,
-            initialDate: _formData['tarih'],
-            firstDate: DateTime(2000),
-            lastDate: DateTime.now(),
-          );
-          if (picked != null) {
-            setState(() {
-              _formData['tarih'] = picked;
-            });
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
+    );
+
+    // Simulate finding a device after a delay
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.of(context).pop();
+
+      // Show device selection dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Bulunan Cihazlar'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.calendar_today, color: Colors.grey),
-              const SizedBox(width: 12),
-              Text(
-                '${_formData['tarih'].day}/${_formData['tarih'].month}/${_formData['tarih'].year}',
-                style: const TextStyle(fontSize: 16),
+              ListTile(
+                leading: const Icon(Icons.bluetooth, color: Colors.blue),
+                title: const Text('Dijital Tartı A1'),
+                subtitle: const Text('Bağlan'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _connectToSelectedDevice('Dijital Tartı A1');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bluetooth, color: Colors.blue),
+                title: const Text('Akıllı Tartı B2'),
+                subtitle: const Text('Bağlan'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _connectToSelectedDevice('Akıllı Tartı B2');
+                },
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWeightField() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextFormField(
-        focusNode: _weightFocusNode,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: 'Ağırlık',
-          suffixText: 'kg',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-        ),
-        onChanged: (value) {
-          _formData['agirlik'] = double.tryParse(value) ?? 0.0;
-        },
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Lütfen ağırlık girin';
-          }
-          if (double.tryParse(value) == null) {
-            return 'Geçerli bir sayı girin';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-
-  Widget _buildNotesField() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextFormField(
-        maxLines: 4,
-        decoration: InputDecoration(
-          labelText: 'Notlar',
-          alignLabelWithHint: true,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-        ),
-        onChanged: (value) {
-          _formData['notlar'] = value;
-        },
-      ),
-    );
-  }
-
-  Widget _buildBluetoothButton() {
-    return Obx(() {
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        height: 56,
-        decoration: BoxDecoration(
-          color: controller.isBluetoothConnected.value
-              ? Colors.green
-              : Colors.blue,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 2),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('İptal'),
             ),
           ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () async {
-              if (!controller.isBluetoothConnected.value) {
-                await controller.connectBluetooth();
-              }
-            },
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    controller.isBluetoothConnected.value
-                        ? Icons.bluetooth_connected
-                        : Icons.bluetooth,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    controller.isBluetoothConnected.value
-                        ? 'Bağlantı Kuruldu'
-                        : 'Bluetooth Tartı Bağla',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (controller.isBluetoothLoading.value) ...[
-                    const SizedBox(width: 8),
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
         ),
       );
     });
   }
 
-  Widget _buildSubmitButton() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      height: 56,
-      decoration: BoxDecoration(
-        color: _isSaving ? Colors.grey : Colors.red,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: _isSaving ? null : _submitForm,
+  // Connect to the selected Bluetooth device
+  void _connectToSelectedDevice(String deviceName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cihaza Bağlanılıyor: $deviceName'),
+        content: const SizedBox(
+          height: 100,
           child: Center(
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text(
-                    'Kaydet',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Lütfen bekleyin...'),
+              ],
+            ),
           ),
         ),
       ),
     );
+
+    // Simulate connection
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.of(context).pop();
+
+      // Set a random weight after connection
+      final randomWeight = (300 + DateTime.now().millisecond % 200).toDouble();
+      setState(() {
+        _formData['agirlik'] = randomWeight;
+      });
+
+      Get.snackbar(
+        'Bağlantı Başarılı',
+        'Cihaz bağlandı ve ağırlık alındı: ${randomWeight.toStringAsFixed(1)} kg',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    });
   }
 
-  Future<void> _submitForm() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      if (_formData['agirlik'] <= 0) {
-        Get.snackbar('Hata', 'Ağırlık pozitif bir değer olmalıdır.');
-        return;
-      }
+  // Confirm deletion of record
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sil'),
+        content:
+            const Text('Bu tartım kaydını silmek istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+
+              if (_formData.containsKey('id') && _formData['id'] != null) {
+                setState(() {
+                  _isSaving = true;
+                });
+
+                try {
+                  await controller.deleteTartimKaydi(_formData['id'] as String);
+
+                  Get.back();
+                  Get.snackbar(
+                    'Başarılı',
+                    'Tartım kaydı silindi',
+                    backgroundColor: Colors.green,
+                    colorText: Colors.white,
+                  );
+                } catch (e) {
+                  Get.snackbar(
+                    'Hata',
+                    'Tartım kaydı silinirken bir hata oluştu: $e',
+                    backgroundColor: Colors.red,
+                    colorText: Colors.white,
+                  );
+                } finally {
+                  setState(() {
+                    _isSaving = false;
+                  });
+                }
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveWeight() async {
+    if (_formKey.currentState!.validate()) {
       setState(() {
         _isSaving = true;
       });
 
-      await Future.delayed(const Duration(milliseconds: 1000));
+      try {
+        final weightData = {
+          'hayvan_id': _formData['hayvanId'],
+          'tarih': _formData['tarih'],
+          'agirlik': _formData['agirlik'],
+          'birim': _formData['birim'],
+          'notlar': _formData['notlar'],
+        };
 
-      _formData['id'] = DateTime.now().millisecondsSinceEpoch.toString();
-      controller.addTartimKaydi(_formData);
-
-      setState(() {
-        _isSaving = false;
-      });
-
-      Get.back();
-      Get.snackbar(
-        'Başarılı',
-        'Tartım kaydı oluşturuldu',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-    } else {
-      Get.snackbar(
-        'Hata',
-        'Lütfen tüm alanları doğru bir şekilde doldurun.',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+        if (_isEditing) {
+          // Update existing record
+          weightData['id'] = widget.editData!['id'];
+          final success = await controller.saveTartim(weightData);
+          
+          if (success) {
+            Get.back(result: true);
+            Get.snackbar(
+              'Başarılı',
+              'Tartım kaydı güncellendi',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.green.withOpacity(0.7),
+              colorText: Colors.white,
+            );
+          } else {
+            _showErrorMessage('Tartım güncellenirken bir sorun oluştu');
+          }
+        } else {
+          // Create new record
+          final success = await controller.saveTartim(weightData);
+          
+          if (success) {
+            Get.back(result: true);
+            Get.snackbar(
+              'Başarılı',
+              'Tartım kaydı eklendi',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.green.withOpacity(0.7),
+              colorText: Colors.white,
+            );
+          } else {
+            _showErrorMessage('Tartım eklenirken bir sorun oluştu');
+          }
+        }
+      } catch (e) {
+        _showErrorMessage('Hata oluştu: $e');
+      } finally {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
+  }
+
+  void _showErrorMessage(String message) {
+    Get.snackbar(
+      'Hata',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.withOpacity(0.7),
+      colorText: Colors.white,
+    );
   }
 }

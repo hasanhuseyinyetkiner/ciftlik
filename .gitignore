@@ -43,3 +43,26 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# iOS specific
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/App.framework/
+
+# macOS specific
+macos/Flutter/ephemeral/
+
+# Environment variables
+.env
+
+# Build artifacts
+*.apk
+*.ipa
+*.aab
+
+# Cursor specific
+.cursor/
+.cursor/mcp.json

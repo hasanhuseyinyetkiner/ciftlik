@@ -56,7 +56,9 @@ import 'AddWeightPage.dart';
 */
 
 class WeightHistoryPage extends StatefulWidget {
-  const WeightHistoryPage({Key? key}) : super(key: key);
+  final String? hayvanId;
+  
+  const WeightHistoryPage({Key? key, this.hayvanId}) : super(key: key);
 
   @override
   State<WeightHistoryPage> createState() => _WeightHistoryPageState();
@@ -93,6 +95,11 @@ class _WeightHistoryPageState extends State<WeightHistoryPage>
       curve: Curves.easeIn,
     ));
 
+    // Set the selected animal if hayvanId is provided
+    if (widget.hayvanId != null) {
+      controller.selectedAnimal.value = widget.hayvanId;
+    }
+
     _animationController.forward();
   }
 
@@ -117,6 +124,37 @@ class _WeightHistoryPageState extends State<WeightHistoryPage>
           onPressed: () => Get.back(),
         ),
         actions: [
+          Obx(() => IconButton(
+                icon: controller.isSyncing.value
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.black87))
+                    : const Icon(Icons.sync, color: Colors.black87),
+                onPressed: controller.isSyncing.value
+                    ? null
+                    : () async {
+                        final result = await controller.syncWithSupabase();
+                        if (result) {
+                          Get.snackbar(
+                            'Senkronizasyon Başarılı',
+                            'Veriler başarıyla Supabase ile senkronize edildi.',
+                            backgroundColor: Colors.green,
+                            colorText: Colors.white,
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        } else {
+                          Get.snackbar(
+                            'Senkronizasyon Hatası',
+                            'Veriler senkronize edilirken bir hata oluştu.',
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        }
+                      },
+              )),
           IconButton(
             icon: Obx(() => Icon(
                   controller.isAscending.value
@@ -128,18 +166,28 @@ class _WeightHistoryPageState extends State<WeightHistoryPage>
               controller.isAscending.value = !controller.isAscending.value;
             },
           ),
+          // Only show filter button if not viewing a specific animal
+          if (widget.hayvanId == null)
+            IconButton(
+              icon: const Icon(Icons.filter_list, color: Colors.black87),
+              onPressed: () => _showFilterDialog(context),
+            ),
         ],
       ),
       body: Column(
         children: [
-          _buildFilterSection(),
+          // Only show filter section if not viewing a specific animal
+          if (widget.hayvanId == null) _buildFilterSection(),
           Expanded(
             child: SlideTransition(
               position: _slideAnimation,
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Obx(() {
-                  final tartimlar = controller.getFilteredTartimKayitlari();
+                  final tartimlar = widget.hayvanId != null 
+                      ? controller.getTartimKayitlariByHayvanId(widget.hayvanId!)
+                      : controller.getFilteredTartimKayitlari();
+                  
                   if (tartimlar.isEmpty) {
                     return _buildEmptyState();
                   }
@@ -151,7 +199,7 @@ class _WeightHistoryPageState extends State<WeightHistoryPage>
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Get.to(() => const AddWeightPage()),
+        onPressed: () => Get.to(() => AddWeightPage(hayvanId: widget.hayvanId)),
         backgroundColor: Colors.red,
         child: const Icon(Icons.add),
       ),
@@ -310,7 +358,7 @@ class _WeightHistoryPageState extends State<WeightHistoryPage>
         borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
-        onTap: () => _showTartimDetails(tartim),
+        onTap: () => _navigateToTartimEdit(tartim),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -503,5 +551,63 @@ class _WeightHistoryPageState extends State<WeightHistoryPage>
         ),
       ],
     );
+  }
+
+  void _showFilterDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Filtreleme Seçenekleri'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAnimalDropdown(),
+                const SizedBox(height: 16),
+                _buildDateRangePicker(),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text(
+                'Uygula',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _navigateToTartimEdit(Map<String, dynamic> tartim) {
+    Get.dialog(
+      const Center(
+        child: CircularProgressIndicator(),
+      ),
+      barrierDismissible: false,
+    );
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      Get.back();
+      Get.to(
+        () => AddWeightPage(editData: tartim),
+        transition: Transition.rightToLeft,
+      );
+    });
   }
 }

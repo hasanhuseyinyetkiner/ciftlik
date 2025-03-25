@@ -1,89 +1,171 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import '../database/database_config.dart';
 
 class DatabaseAnimalHelper {
-  static final DatabaseAnimalHelper instance = DatabaseAnimalHelper._instance();
-  static Database? _db;
+  static final DatabaseAnimalHelper instance = DatabaseAnimalHelper._init();
+  static Database? _database;
 
-  DatabaseAnimalHelper._instance();
+  DatabaseAnimalHelper._init();
 
-  Future<Database?> get db async {
-    _db ??= await _initDb();
-    return _db;
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+
+    _database = await _initDB('farm_db.db');
+    return _database!;
   }
 
-  Future<Database> _initDb() async {
-    String path = join(await getDatabasesPath(), 'merlab.db');
-    final merlabDb = await openDatabase(
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
+    return await openDatabase(
       path,
       version: 1,
-      onCreate: _createDb,
+      onCreate: _createDB,
     );
-    return merlabDb;
   }
 
-  void _createDb(Database db, int version) async {
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS koyunTable(id INTEGER PRIMARY KEY AUTOINCREMENT, tagNo TEXT, name TEXT)',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS kocTable(id INTEGER PRIMARY KEY AUTOINCREMENT, tagNo TEXT, name TEXT)',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS inekTable(id INTEGER PRIMARY KEY AUTOINCREMENT, tagNo TEXT, name TEXT)',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS bogaTable(id INTEGER PRIMARY KEY AUTOINCREMENT, tagNo TEXT, name TEXT)',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS lambTable(id INTEGER PRIMARY KEY AUTOINCREMENT, tagNo TEXT, name TEXT)',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS buzagiTable(id INTEGER PRIMARY KEY AUTOINCREMENT, tagNo TEXT, name TEXT)',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS Animal(id INTEGER PRIMARY KEY AUTOINCREMENT, tagNo TEXT, name TEXT, animalsubtypeid INTEGER, FOREIGN KEY(animalsubtypeid) REFERENCES AnimalSubType(id))',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS AnimalSubType(id INTEGER PRIMARY KEY AUTOINCREMENT, animaltypeid INTEGER, name TEXT, FOREIGN KEY(animaltypeid) REFERENCES AnimalType(id))',
-    );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS AnimalType(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)',
-    );
+  Future<void> _createDB(Database db, int version) async {
+    // Create tables if they don't exist
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS koyunTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tagNo TEXT,
+        name TEXT,
+        dob TEXT,
+        date TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS kocTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tagNo TEXT,
+        name TEXT,
+        dob TEXT,
+        date TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS inekTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tagNo TEXT,
+        name TEXT,
+        dob TEXT,
+        date TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS bogaTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tagNo TEXT,
+        name TEXT,
+        dob TEXT,
+        date TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS lambTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tagNo TEXT,
+        name TEXT,
+        dob TEXT,
+        date TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS buzagiTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tagNo TEXT,
+        name TEXT,
+        dob TEXT,
+        date TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS Animal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tagNo TEXT,
+        name TEXT,
+        dob TEXT,
+        date TEXT
+      )
+    ''');
+  }
+
+  Future<List<Map<String, dynamic>>> getAnimals(String tableName) async {
+    final db = await instance.database;
+    try {
+      return await db.query(tableName);
+    } catch (e) {
+      print('Error getting animals from $tableName: $e');
+      return [];
+    }
   }
 
   Future<Map<String, dynamic>?> getAnimalByTagNo(String tableName, String tagNo) async {
-    Database? db = await this.db;
-    final List<Map<String, dynamic>> result = await db!.query(
-      tableName,
-      where: 'tagNo = ?',
-      whereArgs: [tagNo],
-    );
+    final db = await instance.database;
+    try {
+      final List<Map<String, dynamic>> result = await db.query(
+        tableName,
+        where: 'tagNo = ?',
+        whereArgs: [tagNo],
+        limit: 1,
+      );
 
-    if (result.isNotEmpty) {
-      return result.first;
-    } else {
+      if (result.isNotEmpty) {
+        return result.first;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Error getting animal by tag number from $tableName: $e');
       return null;
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAnimals(String tableName) async {
-    Database? db = await this.db;
-    return await db!.query(tableName);
-  }
-  Future<void> updateAnimalWeanedStatus(String tagNo, int weanedStatus) async {
-    Database? db = await this.db;
-    await db!.update(
-      'Animal',  // Animal tablosu
-      {'weaned': weanedStatus},  // weaned değerini güncelliyoruz
-      where: 'tagNo = ?',  // Hangi hayvanın güncelleneceğini tagNo'ya göre belirliyoruz
-      whereArgs: [tagNo],
-    );
+  Future<int> deleteAnimal(int id, String tableName) async {
+    final db = await instance.database;
+    try {
+      return await db.delete(
+        tableName,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } catch (e) {
+      print('Error deleting animal from $tableName: $e');
+      return 0;
+    }
   }
 
+  Future<int> insertAnimal(String tableName, Map<String, dynamic> data) async {
+    final db = await instance.database;
+    try {
+      return await db.insert(tableName, data);
+    } catch (e) {
+      print('Error inserting animal into $tableName: $e');
+      return -1;
+    }
+  }
 
-  Future<void> deleteAnimal(int id, String tableName) async {
-    Database? db = await this.db;
-    await db!.delete(tableName, where: 'id = ?', whereArgs: [id]);
+  Future<int> updateAnimalDetails(String tableName, int id, Map<String, dynamic> data) async {
+    final db = await instance.database;
+    try {
+      return await db.update(
+        tableName,
+        data,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } catch (e) {
+      print('Error updating animal in $tableName: $e');
+      return 0;
+    }
   }
 }

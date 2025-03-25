@@ -7,7 +7,7 @@ import 'hayvan_detail_page.dart';
 import 'hayvan_form_page.dart';
 
 class HayvanListPage extends StatelessWidget {
-  final HayvanController controller = Get.put(HayvanController());
+  final HayvanListController controller = Get.put(HayvanListController());
 
   HayvanListPage({Key? key}) : super(key: key);
 
@@ -20,8 +20,9 @@ class HayvanListPage extends StatelessWidget {
       onAddPressed: () => Get.to(() => HayvanFormPage()),
       showSearchBar: true,
       onSearch: controller.updateSearch,
-      filterOptions: controller.filterOptions,
-      onFilterChanged: controller.updateFilter,
+      filterOptions: ['Tümü', 'Aktif', 'Pasif'],
+      onFilterChanged: (value) =>
+          controller.updateFilter(value == 'Tümü' ? null : value),
       itemBuilder: (hayvan) => _buildAnimalCard(hayvan),
     );
   }

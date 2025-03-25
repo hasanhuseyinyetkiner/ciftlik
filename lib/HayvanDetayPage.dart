@@ -3,76 +3,45 @@ import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
 import 'HayvanController.dart';
+import 'TartimModulu/WeightHistoryPage.dart';
+import 'TartimModulu/AddWeightPage.dart';
+import 'SutYonetimi/SutGirisPage.dart';
 
-/*
-* HayvanDetayPage - Hayvan Detay Sayfası
-* ------------------------------------
-* Bu sayfa, seçilen hayvanın tüm detaylarını ve 
-* yönetim fonksiyonlarını içerir.
-*
-* Sayfa Bileşenleri:
-* 1. Üst Bilgi Kartı:
-*    - Hayvan küpe no
-*    - İsim ve tür
-*    - Yaş ve cinsiyet
-*    - Durum göstergesi
-*
-* 2. Hızlı Bilgi Kartları:
-*    - Sağlık durumu
-*    - Son muayene
-*    - Güncel ağırlık
-*    - Süt verimi
-*
-* 3. Detay Sekmeleri:
-*    - Genel bilgiler
-*    - Sağlık kayıtları
-*    - Aşı takibi
-*    - Üreme bilgileri
-*    - Süt/Ağırlık kayıtları
-*    - Notlar
-*
-* 4. Hızlı İşlem Butonları:
-*    - Muayene ekle
-*    - Aşı kaydet
-*    - Ağırlık ölçümü
-*    - Süt ölçümü
-*    - Not ekle
-*
-* 5. Alt Menü:
-*    - Düzenleme
-*    - Raporlama
-*    - Paylaşım
-*    - Arşivleme
-*
-* Özellikler:
-* - Responsive tasarım
-* - GetX state yönetimi
-* - Dinamik veri güncelleme
-* - Offline çalışabilme
-*
-* Bağımlılıklar:
-* - HayvanController
-* - SaglikController
-* - UremeBilgileriController
-* - OlcumController
-*/
-
-class HayvanDetayPage extends StatelessWidget {
+class HayvanDetayPage extends StatefulWidget {
   final Hayvan hayvan;
-  final HayvanController controller = Get.find();
+  
+  const HayvanDetayPage({Key? key, required this.hayvan}) : super(key: key);
 
-  HayvanDetayPage({super.key, required this.hayvan});
+  @override
+  State<HayvanDetayPage> createState() => _HayvanDetayPageState();
+}
+
+class _HayvanDetayPageState extends State<HayvanDetayPage> with SingleTickerProviderStateMixin {
+  final HayvanController controller = Get.find();
+  late TabController _tabController;
+  
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 12, vsync: this);
+  }
+  
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hayvan Detay - ${hayvan.kupeNo}'),
+        title: Text('Hayvan Detay - ${widget.hayvan.kupeNo}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              // TODO: Navigate to edit page
+              // Edit hayvan
               Get.snackbar('Bilgi', 'Düzenleme sayfası yakında!');
             },
           ),
@@ -83,11 +52,9 @@ class HayvanDetayPage extends StatelessWidget {
                   _showDeleteConfirmation(context);
                   break;
                 case 'archive':
-                  // TODO: Implement archive
                   Get.snackbar('Bilgi', 'Arşivleme yakında!');
                   break;
                 case 'print':
-                  // TODO: Implement print
                   Get.snackbar('Bilgi', 'Yazdırma yakında!');
                   break;
               }
@@ -117,236 +84,332 @@ class HayvanDetayPage extends StatelessWidget {
             ],
           ),
         ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildInfoCard(),
-            const SizedBox(height: 16),
-            _buildStatusCard(),
-            const SizedBox(height: 16),
-            if (hayvan.cinsiyet == 'Dişi') ...[
-              _buildReproductionCard(),
-              const SizedBox(height: 16),
-              _buildMilkProductionCard(),
-              const SizedBox(height: 16),
-            ],
-            _buildNotesCard(),
-            const SizedBox(height: 16),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'ÖZELLİKLER'),
+            Tab(text: 'TARTIM'),
+            Tab(text: 'SATIŞ'),
+            Tab(text: 'ÖLÜM'),
+            Tab(text: 'KESİM'),
+            Tab(text: 'TEDAVİLER'),
+            Tab(text: 'HASTALIKLAR'),
+            Tab(text: 'SÜT SAĞIMI'),
+            Tab(text: 'YAPAĞI'),
+            Tab(text: 'ETİKET'),
+            Tab(text: 'PADOK HAREKETLER'),
+            Tab(text: 'ŞECERE'),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: Show quick actions menu
-          Get.snackbar('Bilgi', 'Hızlı işlemler yakında!');
-        },
-        label: const Text('Hızlı İşlem'),
-        icon: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Temel Bilgiler',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow('Küpe No', hayvan.kupeNo),
-            _buildInfoRow('Tür', hayvan.tur),
-            _buildInfoRow('Irk', hayvan.irk),
-            _buildInfoRow('Cinsiyet', hayvan.cinsiyet),
-            _buildInfoRow(
-              'Yaş',
-              controller.calculateAge(hayvan.dogumTarihi),
-            ),
-            if (hayvan.anneKupeNo != null)
-              _buildInfoRow('Anne Küpe No', hayvan.anneKupeNo ?? 'Bilinmiyor'),
-            if (hayvan.babaKupeNo != null)
-              _buildInfoRow('Baba Küpe No', hayvan.babaKupeNo ?? 'Bilinmiyor'),
-            _buildInfoRow('Chip No', hayvan.chipNo ?? 'Yok'),
-            _buildInfoRow('RFID', hayvan.rfid ?? 'Yok'),
-            _buildInfoRow('Ağırlık', '${hayvan.agirlik} kg'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusCard() {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Durum',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: controller
-                        .getStatusColor(hayvan.durum)
-                        .withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.circle,
-                        size: 12,
-                        color: controller.getStatusColor(hayvan.durum),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        hayvan.durum,
-                        style: TextStyle(
-                          color: controller.getStatusColor(hayvan.durum),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReproductionCard() {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Üreme Bilgileri',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              'Gebelik Durumu',
-              hayvan.gebelikDurumu ? 'Gebe' : 'Gebe Değil',
-            ),
-            if (hayvan.gebelikDurumu && hayvan.sonTohumlanmaTarihi != null) ...[
-              _buildInfoRow(
-                'Son Tohumlama',
-                DateFormat('dd.MM.yyyy').format(hayvan.sonTohumlanmaTarihi!),
-              ),
-            ],
-            if (hayvan.gebelikDurumu && hayvan.tahminiDogumTarihi != null) ...[
-              _buildInfoRow(
-                'Tahmini Doğum',
-                DateFormat('dd.MM.yyyy').format(hayvan.tahminiDogumTarihi!),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMilkProductionCard() {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Süt Verimi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              'Günlük Süt Verimi',
-              '${hayvan.sutVerimi} L',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotesCard() {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Notlar',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(hayvan.notlar ?? 'Not bulunmuyor'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[600],
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
+          _buildOzelliklerTab(),
+          _buildTartimTab(),
+          _buildSatisTab(),
+          _buildOlumTab(),
+          _buildKesimTab(),
+          _buildTedavilerTab(),
+          _buildHastaliklarTab(),
+          _buildSutSagimiTab(),
+          _buildYapagiTab(),
+          _buildEtiketTab(),
+          _buildPadokHareketlerTab(),
+          _buildSecereTab(),
+        ],
+      ),
+      floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return Obx(() {
+      int currentIndex = _tabController.index;
+      switch (currentIndex) {
+        case 1: // TARTIM
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddWeight(),
+            child: const Icon(Icons.add),
+            tooltip: 'Tartım Ekle',
+          );
+        case 2: // SATIŞ
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddSale(),
+            child: const Icon(Icons.add),
+            tooltip: 'Satış Ekle',
+          );
+        case 3: // ÖLÜM
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddDeath(),
+            child: const Icon(Icons.add),
+            tooltip: 'Ölüm Kaydı Ekle',
+          );
+        case 4: // KESİM
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddSlaughter(),
+            child: const Icon(Icons.add),
+            tooltip: 'Kesim Kaydı Ekle',
+          );
+        case 5: // TEDAVİLER
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddTreatment(),
+            child: const Icon(Icons.add),
+            tooltip: 'Tedavi Ekle',
+          );
+        case 6: // HASTALIKLAR
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddDisease(),
+            child: const Icon(Icons.add),
+            tooltip: 'Hastalık Ekle',
+          );
+        case 7: // SÜT SAĞIMI
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddMilking(),
+            child: const Icon(Icons.add),
+            tooltip: 'Süt Sağımı Ekle',
+          );
+        case 8: // YAPAĞI
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddWool(),
+            child: const Icon(Icons.add),
+            tooltip: 'Yapağı Ekle',
+          );
+        case 10: // PADOK HAREKETLER
+          return FloatingActionButton(
+            onPressed: () => _navigateToAddPaddockMovement(),
+            child: const Icon(Icons.add),
+            tooltip: 'Padok Hareketi Ekle',
+          );
+        default:
+          return const SizedBox.shrink();
+      }
+    });
+  }
+
+  // Özellikler tab içeriği
+  Widget _buildOzelliklerTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoCard('Temel Bilgiler', _buildBasicInfo()),
+          const SizedBox(height: 16),
+          _buildInfoCard('Fiziksel Bilgiler', _buildPhysicalInfo()),
+          const SizedBox(height: 16),
+          _buildInfoCard('Soy Bilgileri', _buildAncestryInfo()),
+          const SizedBox(height: 16),
+          _buildInfoCard('Genel Bilgiler', _buildGeneralInfo()),
+          const SizedBox(height: 16),
+          _buildInfoCard('Hayvan Parametreleri', _buildParametersInfo()),
+        ],
+      ),
+    );
+  }
+
+  // Hayvan Parametreleri bölümü
+  Widget _buildParametersInfo() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              _tabController.animateTo(11); // HAYVAN PARAMETRELERİ sekmesine git
+            },
+            child: const Text('Hayvan Parametreleri Detayları'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              foregroundColor: Colors.white,
             ),
           ),
         ],
       ),
     );
+  }
+
+  // Tartım tab içeriği
+  Widget _buildTartimTab() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: controller.getHayvanTartimlar(widget.hayvan.id.toString()),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(child: Text('Hata: ${snapshot.error}'));
+        }
+        
+        final tartimlar = snapshot.data ?? [];
+        
+        if (tartimlar.isEmpty) {
+          return const Center(
+            child: Text('Tartım kaydı bulunamadı'),
+          );
+        }
+        
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columns: const [
+              DataColumn(label: Text('#')),
+              DataColumn(label: Text('Küpe')),
+              DataColumn(label: Text('Doğum Tarihi')),
+              DataColumn(label: Text('7 Günlük C.A.O')),
+              DataColumn(label: Text('15 Günlük C.A.O')),
+              DataColumn(label: Text('30 Günlük C.A.O')),
+              DataColumn(label: Text('Günlük C.A.A')),
+              DataColumn(label: Text('Tarih')),
+              DataColumn(label: Text('Ağırlık')),
+            ],
+            rows: tartimlar.asMap().entries.map((entry) {
+              final index = entry.key;
+              final tartim = entry.value;
+              return DataRow(cells: [
+                DataCell(Text('${index + 1}')),
+                DataCell(Text(widget.hayvan.kupeNo)),
+                DataCell(Text(DateFormat('dd.MM.yyyy').format(widget.hayvan.dogumTarihi))),
+                DataCell(Text('${widget.hayvan.yediGunlukCanliAgirlikOrtalamasi?.toStringAsFixed(2) ?? '-'} kg')),
+                DataCell(Text('${widget.hayvan.onbesGunlukCanliAgirlikOrtalamasi?.toStringAsFixed(2) ?? '-'} kg')),
+                DataCell(Text('${widget.hayvan.otuzGunlukCanliAgirlikOrtalamasi?.toStringAsFixed(2) ?? '-'} kg')),
+                DataCell(Text('${widget.hayvan.gunlukCanliAgirlikArtisi?.toStringAsFixed(2) ?? '-'} kg')),
+                DataCell(Text(DateFormat('dd.MM.yyyy').format(tartim['tarih']))),
+                DataCell(Text('${tartim['agirlik']} ${tartim['birim']}')),
+              ]);
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  // Diğer tablar için yapılar
+  Widget _buildSatisTab() {
+    return const Center(child: Text('Satış Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildOlumTab() {
+    return const Center(child: Text('Ölüm Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildKesimTab() {
+    return const Center(child: Text('Kesim Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildTedavilerTab() {
+    return const Center(child: Text('Tedavi Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildHastaliklarTab() {
+    return const Center(child: Text('Hastalık Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildSutSagimiTab() {
+    return const Center(child: Text('Süt Sağımı Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildYapagiTab() {
+    return const Center(child: Text('Yapağı Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildEtiketTab() {
+    return const Center(child: Text('Etiket Bilgileri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildPadokHareketlerTab() {
+    return const Center(child: Text('Padok Hareketleri Burada Görüntülenecek'));
+  }
+  
+  Widget _buildSecereTab() {
+    return const Center(child: Text('Şecere Bilgileri Burada Görüntülenecek'));
+  }
+
+  // Navigasyon metodları
+  void _navigateToAddWeight() {
+    Get.to(() => AddWeightPage(), arguments: {'hayvanId': widget.hayvan.id});
+  }
+  
+  void _navigateToAddSale() {
+    Get.snackbar('Bilgi', 'Satış ekle sayfası yapım aşamasında');
+  }
+  
+  void _navigateToAddDeath() {
+    Get.snackbar('Bilgi', 'Ölüm kaydı ekle sayfası yapım aşamasında');
+  }
+  
+  void _navigateToAddSlaughter() {
+    Get.snackbar('Bilgi', 'Kesim kaydı ekle sayfası yapım aşamasında');
+  }
+  
+  void _navigateToAddTreatment() {
+    Get.snackbar('Bilgi', 'Tedavi ekle sayfası yapım aşamasında');
+  }
+  
+  void _navigateToAddDisease() {
+    Get.snackbar('Bilgi', 'Hastalık ekle sayfası yapım aşamasında');
+  }
+  
+  void _navigateToAddMilking() {
+    Get.to(() => SutGirisPage(), arguments: {'hayvan': widget.hayvan});
+  }
+  
+  void _navigateToAddWool() {
+    Get.snackbar('Bilgi', 'Yapağı ekle sayfası yapım aşamasında');
+  }
+  
+  void _navigateToAddPaddockMovement() {
+    Get.snackbar('Bilgi', 'Padok hareketi ekle sayfası yapım aşamasında');
+  }
+
+  // Card builders for the Özellikler tab
+  Widget _buildInfoCard(String title, Widget content) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            content,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBasicInfo() {
+    // Implementation of _buildBasicInfo method
+    // This method should return a Widget representing the basic info section
+    throw UnimplementedError();
+  }
+
+  Widget _buildPhysicalInfo() {
+    // Implementation of _buildPhysicalInfo method
+    // This method should return a Widget representing the physical info section
+    throw UnimplementedError();
+  }
+
+  Widget _buildAncestryInfo() {
+    // Implementation of _buildAncestryInfo method
+    // This method should return a Widget representing the ancestry info section
+    throw UnimplementedError();
+  }
+
+  Widget _buildGeneralInfo() {
+    // Implementation of _buildGeneralInfo method
+    // This method should return a Widget representing the general info section
+    throw UnimplementedError();
   }
 
   void _showDeleteConfirmation(BuildContext context) {
@@ -354,7 +417,7 @@ class HayvanDetayPage extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Hayvanı Sil'),
-        content: const Text('Bu hayvanı silmek istediğinizden emin misiniz?'),
+        content: Text('${widget.hayvan.kupeNo} numaralı hayvanı silmek istediğinizden emin misiniz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -362,18 +425,24 @@ class HayvanDetayPage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // TODO: Implement delete
               Navigator.pop(context);
-              Get.back();
-              Get.snackbar('Başarılı', 'Hayvan başarıyla silindi');
+              _deleteHayvan();
             },
-            child: const Text(
-              'Sil',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Sil', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
+    );
+  }
+
+  void _deleteHayvan() {
+    // Delete operation
+    controller.deleteHayvan(widget.hayvan.id);
+    Get.back();
+    Get.snackbar(
+      'Başarılı',
+      '${widget.hayvan.kupeNo} numaralı hayvan silindi',
+      snackPosition: SnackPosition.BOTTOM,
     );
   }
 }
